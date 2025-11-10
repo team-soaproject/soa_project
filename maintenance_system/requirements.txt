@@ -1,0 +1,30 @@
+# Django Core
+Django==5.0.0
+djangorestframework==3.14.0
+
+# JWT Authentication
+djangorestframework-simplejwt==5.3.1
+
+# API Documentation
+drf-yasg==1.21.7
+
+# Image Processing
+Pillow==10.1.0
+
+# Environment Variables
+python-decouple==3.8
+
+# Timezone Support
+pytz==2023.3
+
+# CORS Headers (สำหรับ production)
+django-cors-headers==4.3.1
+
+# PostgreSQL Support (สำหรับ production)
+# psycopg2-binary==2.9.9
+
+# Production Server
+# gunicorn==21.2.0
+
+# Static Files Management
+# whitenoise==6.6.0
