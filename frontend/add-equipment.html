@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เพิ่มอุปกรณ์ - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="dashboard.html" class="navbar-brand">🔧 ระบบแจ้งซ่อมอุปกรณ์</a>
+            <div class="navbar-menu">
+                <a href="dashboard.html">หน้าหลัก</a>
+                <a href="repair-requests.html">คำร้องซ่อม</a>
+                <a href="equipment.html">อุปกรณ์</a>
+                <a href="profile.html">โปรไฟล์</a>
+                <span id="userName" style="color: #64748b;"></span>
+                <button id="logoutBtn" class="btn-logout">ออกจากระบบ</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2>เพิ่มอุปกรณ์ใหม่</h2>
+            </div>
+
+            <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+            <div id="successMessage" class="alert alert-success" style="display: none;"></div>
+
+            <form id="addEquipmentForm">
+                <div class="form-group">
+                    <label class="form-label">รหัสอุปกรณ์ *</label>
+                    <input type="text" id="equipment_code" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">ชื่ออุปกรณ์ *</label>
+                    <input type="text" id="name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">หมวดหมู่ *</label>
+                    <select id="category" class="form-control" required>
+                        <option value="">-- เลือกหมวดหมู่ --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">รายละเอียด</label>
+                    <textarea id="description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">สถานที่ตั้ง *</label>
+                    <input type="text" id="location" class="form-control" required>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <a href="equipment.html" class="btn btn-secondary">ยกเลิก</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script>
+        requireAuth();
+
+        // Load categories
+        async function loadCategories() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://127.0.0.1:8000/api/categories/', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const categories = await response.json();
+                
+                const select = document.getElementById('category');
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        // Handle form submit
+        document.getElementById('addEquipmentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            const formData = {
+                equipment_code: document.getElementById('equipment_code').value,
+                name: document.getElementById('name').value,
+                category: parseInt(document.getElementById('category').value),
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value,
+                is_active: true
+            };
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://127.0.0.1:8000/api/equipment/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('เพิ่มอุปกรณ์ไม่สำเร็จ');
+                }
+
+                successDiv.style.display = 'block';
+                successDiv.textContent = 'เพิ่มอุปกรณ์สำเร็จ!';
+
+                setTimeout(() => {
+                    window.location.href = 'equipment.html';
+                }, 1500);
+
+            } catch (error) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = error.message;
+            }
+        });
+
+        loadCategories();
+    </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการอุปกรณ์ - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="dashboard.html" class="navbar-brand">🔧 ระบบแจ้งซ่อมอุปกรณ์</a>
+            <div class="navbar-menu">
+                <a href="dashboard.html">หน้าหลัก</a>
+                <a href="repair-requests.html">คำร้องซ่อม</a>
+                <a href="equipment.html">อุปกรณ์</a>
+                <a href="profile.html">โปรไฟล์</a>
+                <span id="userName" style="color: #64748b;"></span>
+                <button id="logoutBtn" class="btn-logout">ออกจากระบบ</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-between align-center">
+                    <h2>รายการอุปกรณ์</h2>
+                    <button id="addEquipmentBtn" class="btn btn-primary">➕ เพิ่มอุปกรณ์</button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap;">
+                <input type="text" id="searchInput" class="form-control" placeholder="ค้นหา..." style="max-width: 300px;">
+                
+                <select id="categoryFilter" class="form-control" style="max-width: 200px;">
+                    <option value="">ทุกหมวดหมู่</option>
+                </select>
+
+                <select id="statusFilter" class="form-control" style="max-width: 200px;">
+                    <option value="">ทุกสถานะ</option>
+                    <option value="true">ใช้งานอยู่</option>
+                    <option value="false">ไม่ใช้งาน</option>
+                </select>
+
+                <button id="filterBtn" class="btn btn-secondary">🔍 ค้นหา</button>
+                <button id="resetBtn" class="btn btn-secondary">🔄 รีเซ็ต</button>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>กำลังโหลดข้อมูล...</p>
+            </div>
+
+            <!-- Equipment Grid -->
+            <div id="equipmentContainer"></div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Equipment Modal -->
+    <div id="equipmentModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="closeModal">&times;</span>
+            <div class="modal-header" id="modalTitle">เพิ่มอุปกรณ์</div>
+            
+            <form id="equipmentForm">
+                <input type="hidden" id="equipmentId">
+                
+                <div class="form-group">
+                    <label for="equipmentCode" class="form-label">รหัสอุปกรณ์ *</label>
+                    <input type="text" id="equipmentCode" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="name" class="form-label">ชื่ออุปกรณ์ *</label>
+                    <input type="text" id="name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category" class="form-label">หมวดหมู่ *</label>
+                    <select id="category" class="form-control" required>
+                        <option value="">-- เลือกหมวดหมู่ --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description" class="form-label">รายละเอียด</label>
+                    <textarea id="description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="location" class="form-label">สถานที่ติดตั้ง *</label>
+                    <input type="text" id="location" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="purchaseDate" class="form-label">วันที่จัดซื้อ</label>
+                    <input type="date" id="purchaseDate" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="warrantyExpiry" class="form-label">วันหมดประกัน</label>
+                    <input type="date" id="warrantyExpiry" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="condition" class="form-label">สภาพ *</label>
+                    <select id="condition" class="form-control" required>
+                        <option value="excellent">ดีมาก</option>
+                        <option value="good" selected>ดี</option>
+                        <option value="fair">พอใช้</option>
+                        <option value="poor">แย่</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="image" class="form-label">รูปภาพ</label>
+                    <input type="file" id="image" class="form-control" accept="image/*">
+                    <small style="color: #64748b;">ขนาดไฟล์ไม่เกิน 2MB</small>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="isActive" checked>
+                        <span>ใช้งานอยู่</span>
+                    </label>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="closeDetailModal">&times;</span>
+            <div class="modal-header">รายละเอียดอุปกรณ์</div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script>
+        // Check authentication
+        requireAuth();
+
+        let currentEquipment = [];
+        let userProfile = null;
+        let isEditMode = false;
+
+        // Load user profile
+        async function loadProfile() {
+            try {
+                const profileStr = localStorage.getItem('profile');
+                if (profileStr) {
+                    userProfile = JSON.parse(profileStr);
+                } else {
+                    userProfile = await authAPI.getProfile();
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        // Load categories
+        async function loadCategories() {
+            try {
+                const response = await categoryAPI.getAll();
+                const categories = response.results || response;
+                
+                const categorySelect = document.getElementById('category');
+                const categoryFilter = document.getElementById('categoryFilter');
+                
+                categories.forEach(cat => {
+                    const option1 = document.createElement('option');
+                    option1.value = cat.id;
+                    option1.textContent = cat.name;
+                    categorySelect.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = cat.id;
+                    option2.textContent = cat.name;
+                    categoryFilter.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        // Load equipment
+        async function loadEquipment(filters = {}) {
+            try {
+                const loading = document.getElementById('loading');
+                loading.classList.add('active');
+
+                const response = await equipmentAPI.getAll(filters);
+                currentEquipment = response.results || response;
+
+                displayEquipment(currentEquipment);
+                loading.classList.remove('active');
+            } catch (error) {
+                console.error('Error loading equipment:', error);
+                showError('ไม่สามารถโหลดข้อมูลได้');
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function displayEquipment(equipment) {
+            const container = document.getElementById('equipmentContainer');
+
+            if (equipment.length === 0) {
+                container.innerHTML = '<p class="text-center" style="padding: 2rem;">ไม่พบอุปกรณ์</p>';
+                return;
+            }
+
+            const grid = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                    ${equipment.map(eq => `
+                        <div class="card" style="margin: 0;">
+                            ${eq.image ? `<img src="http://127.0.0.1:8000${eq.image}" alt="${eq.name}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;">` : ''}
+                            <div style="padding: 1rem;">
+                                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem;">${eq.name}</h3>
+                                <p style="color: #64748b; margin: 0 0 0.5rem 0;"><strong>${eq.equipment_code}</strong></p>
+                                <p style="margin: 0 0 0.5rem 0;"><strong>หมวดหมู่:</strong> ${eq.category_name || '-'}</p>
+                                <p style="margin: 0 0 0.5rem 0;"><strong>สถานที่:</strong> ${eq.location}</p>
+                                <p style="margin: 0 0 0.5rem 0;"><strong>สภาพ:</strong> ${eq.condition_display}</p>
+                                <p style="margin: 0 0 1rem 0;">
+                                    <span class="badge ${eq.is_active ? 'badge-completed' : 'badge-cancelled'}">
+                                        ${eq.is_active ? 'ใช้งานอยู่' : 'ไม่ใช้งาน'}
+                                    </span>
+                                </p>
+                                <div class="d-flex gap-1" style="flex-wrap: wrap;">
+                                    <button class="btn btn-sm btn-primary" onclick="viewDetail(${eq.id})">ดูรายละเอียด</button>
+                                    ${canEdit() ? `<button class="btn btn-sm btn-warning" onclick="editEquipment(${eq.id})">แก้ไข</button>` : ''}
+                                    ${canDelete() ? `<button class="btn btn-sm btn-danger" onclick="deleteEquipment(${eq.id})">ลบ</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            container.innerHTML = grid;
+        }
+
+        function canEdit() {
+            return userProfile && (userProfile.role === 'admin' || userProfile.role === 'technician');
+        }
+
+        function canDelete() {
+            return userProfile && userProfile.role === 'admin';
+        }
+
+        async function viewDetail(id) {
+            try {
+                const equipment = await equipmentAPI.getOne(id);
+                
+                const content = `
+                    <div style="line-height: 1.8;">
+                        ${equipment.image ? `<img src="http://127.0.0.1:8000${equipment.image}" alt="${equipment.name}" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">` : ''}
+                        <p><strong>รหัสอุปกรณ์:</strong> ${equipment.equipment_code}</p>
+                        <p><strong>ชื่ออุปกรณ์:</strong> ${equipment.name}</p>
+                        <p><strong>หมวดหมู่:</strong> ${equipment.category_name || '-'}</p>
+                        <p><strong>รายละเอียด:</strong> ${equipment.description || '-'}</p>
+                        <p><strong>สถานที่ติดตั้ง:</strong> ${equipment.location}</p>
+                        <p><strong>วันที่จัดซื้อ:</strong> ${equipment.purchase_date ? new Date(equipment.purchase_date).toLocaleDateString('th-TH') : '-'}</p>
+                        <p><strong>วันหมดประกัน:</strong> ${equipment.warranty_expiry ? new Date(equipment.warranty_expiry).toLocaleDateString('th-TH') : '-'}</p>
+                        <p><strong>สภาพ:</strong> ${equipment.condition_display}</p>
+                        <p><strong>สถานะ:</strong> <span class="badge ${equipment.is_active ? 'badge-completed' : 'badge-cancelled'}">${equipment.is_active ? 'ใช้งานอยู่' : 'ไม่ใช้งาน'}</span></p>
+                        <p><strong>สร้างเมื่อ:</strong> ${formatDate(equipment.created_at)}</p>
+                        <p><strong>แก้ไขล่าสุด:</strong> ${formatDate(equipment.updated_at)}</p>
+                    </div>
+                `;
+                
+                document.getElementById('detailContent').innerHTML = content;
+                document.getElementById('detailModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading detail:', error);
+                showError('ไม่สามารถโหลดรายละเอียดได้');
+            }
+        }
+
+        async function editEquipment(id) {
+            try {
+                const equipment = await equipmentAPI.getOne(id);
+                
+                isEditMode = true;
+                document.getElementById('modalTitle').textContent = 'แก้ไขอุปกรณ์';
+                document.getElementById('equipmentId').value = equipment.id;
+                document.getElementById('equipmentCode').value = equipment.equipment_code;
+                document.getElementById('name').value = equipment.name;
+                document.getElementById('category').value = equipment.category || '';
+                document.getElementById('description').value = equipment.description || '';
+                document.getElementById('location').value = equipment.location;
+                document.getElementById('purchaseDate').value = equipment.purchase_date || '';
+                document.getElementById('warrantyExpiry').value = equipment.warranty_expiry || '';
+                document.getElementById('condition').value = equipment.condition;
+                document.getElementById('isActive').checked = equipment.is_active;
+                
+                document.getElementById('equipmentModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading equipment:', error);
+                showError('ไม่สามารถโหลดข้อมูลได้');
+            }
+        }
+
+        async function deleteEquipment(id) {
+            if (!confirm('คุณแน่ใจหรือไม่ที่จะลบอุปกรณ์นี้?')) {
+                return;
+            }
+
+            try {
+                await equipmentAPI.delete(id);
+                showSuccess('ลบอุปกรณ์สำเร็จ');
+                loadEquipment();
+            } catch (error) {
+                console.error('Error deleting equipment:', error);
+                showError('ไม่สามารถลบอุปกรณ์ได้');
+            }
+        }
+
+        // Handle add button
+        document.getElementById('addEquipmentBtn').addEventListener('click', () => {
+            if (!canEdit()) {
+                showError('คุณไม่มีสิทธิ์เพิ่มอุปกรณ์');
+                return;
+            }
+            
+            isEditMode = false;
+            document.getElementById('modalTitle').textContent = 'เพิ่มอุปกรณ์';
+            document.getElementById('equipmentForm').reset();
+            document.getElementById('equipmentId').value = '';
+            document.getElementById('equipmentModal').classList.add('active');
+        });
+
+        // Handle form submission
+        document.getElementById('equipmentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('equipment_code', document.getElementById('equipmentCode').value);
+            formData.append('name', document.getElementById('name').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('location', document.getElementById('location').value);
+            
+            const purchaseDate = document.getElementById('purchaseDate').value;
+            if (purchaseDate) formData.append('purchase_date', purchaseDate);
+            
+            const warrantyExpiry = document.getElementById('warrantyExpiry').value;
+            if (warrantyExpiry) formData.append('warranty_expiry', warrantyExpiry);
+            
+            formData.append('condition', document.getElementById('condition').value);
+            formData.append('is_active', document.getElementById('isActive').checked);
+
+            const imageFile = document.getElementById('image').files[0];
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            try {
+                if (isEditMode) {
+                    const id = document.getElementById('equipmentId').value;
+                    await equipmentAPI.update(id, formData);
+                    showSuccess('แก้ไขอุปกรณ์สำเร็จ');
+                } else {
+                    await equipmentAPI.create(formData);
+                    showSuccess('เพิ่มอุปกรณ์สำเร็จ');
+                }
+
+                document.getElementById('equipmentModal').classList.remove('active');
+                document.getElementById('equipmentForm').reset();
+                loadEquipment();
+            } catch (error) {
+                console.error('Error saving equipment:', error);
+                showError('ไม่สามารถบันทึกอุปกรณ์ได้');
+            }
+        });
+
+        // Handle filter
+        document.getElementById('filterBtn').addEventListener('click', () => {
+            const filters = {
+                search: document.getElementById('searchInput').value,
+                category: document.getElementById('categoryFilter').value,
+                is_active: document.getElementById('statusFilter').value
+            };
+            loadEquipment(filters);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            loadEquipment();
+        });
+
+        // Modal handlers
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('equipmentModal').classList.remove('active');
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            document.getElementById('equipmentModal').classList.remove('active');
+        });
+
+        document.getElementById('closeDetailModal').addEventListener('click', () => {
+            document.getElementById('detailModal').classList.remove('active');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProfile();
+            loadCategories();
+            loadEquipment();
+        });
+    </script>
+</body>
+</html>
