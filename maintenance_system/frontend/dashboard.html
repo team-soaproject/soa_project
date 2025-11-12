@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แดshboard - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="dashboard.html" class="navbar-brand">🔧 ระบบแจ้งซ่อมอุปกรณ์</a>
+            <div class="navbar-menu">
+                <a href="dashboard.html">หน้าหลัก</a>
+                <a href="repair-requests.html">คำร้องซ่อม</a>
+                <a href="equipment.html">อุปกรณ์</a>
+                <a href="profile.html">โปรไฟล์</a>
+                <span id="userName" style="color: #64748b;"></span>
+                <button id="logoutBtn" class="btn-logout">ออกจากระบบ</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1 class="mb-3">แดshboard</h1>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>คำร้องทั้งหมด</h3>
+                <div class="number" id="totalRequests">0</div>
+            </div>
+            <div class="stat-card warning">
+                <h3>รอดำเนินการ</h3>
+                <div class="number" id="pendingRequests">0</div>
+            </div>
+            <div class="stat-card info">
+                <h3>กำลังดำเนินการ</h3>
+                <div class="number" id="inProgressRequests">0</div>
+            </div>
+            <div class="stat-card success">
+                <h3>เสร็จสิ้น</h3>
+                <div class="number" id="completedRequests">0</div>
+            </div>
+        </div>
+
+        <!-- Equipment Stats -->
+        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="stat-card">
+                <h3>อุปกรณ์ทั้งหมด</h3>
+                <div class="number" id="totalEquipment">0</div>
+            </div>
+            <div class="stat-card success">
+                <h3>อุปกรณ์ที่ใช้งานได้</h3>
+                <div class="number" id="activeEquipment">0</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">การดำเนินการด่วน</div>
+            <div class="d-flex gap-2">
+                <a href="create-request.html" class="btn btn-primary">➕ สร้างคำร้องซ่อมใหม่</a>
+                <a href="repair-requests.html" class="btn btn-secondary">📋 ดูคำร้องทั้งหมด</a>
+                <a href="equipment.html" class="btn btn-secondary">🔧 จัดการอุปกรณ์</a>
+            </div>
+        </div>
+
+        <!-- Recent Requests -->
+        <div class="card">
+            <div class="card-header">คำร้องซ่อมล่าสุด</div>
+            <div id="loadingRecent" class="loading">
+                <div class="spinner"></div>
+                <p>กำลังโหลดข้อมูล...</p>
+            </div>
+            <div id="recentRequestsContainer"></div>
+        </div>
+    </div>
+
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script>
+        // Check authentication
+        requireAuth();
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const loading = document.getElementById('loadingRecent');
+                loading.classList.add('active');
+
+                const stats = await dashboardAPI.getStats();
+
+                // Update stats
+                document.getElementById('totalRequests').textContent = stats.total_requests;
+                document.getElementById('pendingRequests').textContent = stats.pending_requests;
+                document.getElementById('inProgressRequests').textContent = stats.in_progress_requests;
+                document.getElementById('completedRequests').textContent = stats.completed_requests;
+                document.getElementById('totalEquipment').textContent = stats.total_equipment;
+                document.getElementById('activeEquipment').textContent = stats.active_equipment;
+
+                // Display recent requests
+                displayRecentRequests(stats.recent_requests);
+
+                loading.classList.remove('active');
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('ไม่สามารถโหลดข้อมูลได้');
+            }
+        }
+
+        function displayRecentRequests(requests) {
+            const container = document.getElementById('recentRequestsContainer');
+
+            if (requests.length === 0) {
+                container.innerHTML = '<p class="text-center" style="padding: 2rem;">ไม่มีคำร้องซ่อม</p>';
+                return;
+            }
+
+            const table = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>เลขที่คำร้อง</th>
+                            <th>หัวข้อ</th>
+                            <th>อุปกรณ์</th>
+                            <th>สถานะ</th>
+                            <th>ความสำคัญ</th>
+                            <th>วันที่แจ้ง</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${requests.map(request => `
+                            <tr>
+                                <td>${request.request_number}</td>
+                                <td>${request.title}</td>
+                                <td>${request.equipment_name}</td>
+                                <td><span class="badge ${getStatusBadge(request.status)}">${request.status_display}</span></td>
+                                <td><span class="badge ${getPriorityBadge(request.priority)}">${request.priority_display}</span></td>
+                                <td>${formatDate(request.request_date)}</td>
+                                <td>
+                                    <a href="repair-requests.html?id=${request.id}" class="btn btn-sm btn-primary">ดูรายละเอียด</a>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = table;
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>
