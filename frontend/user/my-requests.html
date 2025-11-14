@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำร้องของฉัน - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .user-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .user-info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .user-info .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .nav-menu {
+            list-style: none;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 10px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-link span {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        .logout-btn {
+            margin-top: auto;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #333;
+        }
+
+        .btn-primary {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Filters */
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid;
+        }
+
+        .stat-card.pending { border-left-color: #ffa726; }
+        .stat-card.assigned { border-left-color: #42a5f5; }
+        .stat-card.progress { border-left-color: #9c27b0; }
+        .stat-card.completed { border-left-color: #66bb6a; }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Requests Table */
+        .requests-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .table-header h2 {
+            font-size: 20px;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-pending { background: #fff3e0; color: #f57c00; }
+        .badge-assigned { background: #e3f2fd; color: #1976d2; }
+        .badge-progress { background: #f3e5f5; color: #7b1fa2; }
+        .badge-completed { background: #e8f5e9; color: #388e3c; }
+        .badge-cancelled { background: #f5f5f5; color: #616161; }
+
+        .priority-low { color: #757575; }
+        .priority-medium { color: #1976d2; }
+        .priority-high { color: #f57c00; }
+        .priority-urgent { color: #d32f2f; }
+
+        .btn-view {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-view:hover {
+            background: #5568d3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">🔧 ระบบแจ้งซ่อม</div>
+        
+        <div class="user-info">
+            <h3 id="userName">กำลังโหลด...</h3>
+            <div class="role-badge" id="userRole">...</div>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="dashboard.html" class="nav-link">
+                    <span>📊</span> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="my-requests.html" class="nav-link active">
+                    <span>📋</span> คำร้องของฉัน
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="create-request.html" class="nav-link">
+                    <span>➕</span> แจ้งซ่อมใหม่
+                </a>
+            </li>
+        </ul>
+
+        <button class="logout-btn" id="logoutBtn">🚪 ออกจากระบบ</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>คำร้องของฉัน</h1>
+            <a href="create-request.html" class="btn-primary">+ แจ้งซ่อมใหม่</a>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card pending">
+                <h3>รอดำเนินการ</h3>
+                <div class="number" id="statPending">0</div>
+            </div>
+            <div class="stat-card assigned">
+                <h3>มอบหมายแล้ว</h3>
+                <div class="number" id="statAssigned">0</div>
+            </div>
+            <div class="stat-card progress">
+                <h3>กำลังดำเนินการ</h3>
+                <div class="number" id="statProgress">0</div>
+            </div>
+            <div class="stat-card completed">
+                <h3>เสร็จสิ้น</h3>
+                <div class="number" id="statCompleted">0</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>สถานะ</label>
+                    <select id="filterStatus">
+                        <option value="">ทั้งหมด</option>
+                        <option value="PENDING">รอดำเนินการ</option>
+                        <option value="ASSIGNED">มอบหมายแล้ว</option>
+                        <option value="IN_PROGRESS">กำลังดำเนินการ</option>
+                        <option value="COMPLETED">เสร็จสิ้น</option>
+                        <option value="CANCELLED">ยกเลิก</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>ความสำคัญ</label>
+                    <select id="filterPriority">
+                        <option value="">ทั้งหมด</option>
+                        <option value="LOW">ต่ำ</option>
+                        <option value="MEDIUM">ปานกลาง</option>
+                        <option value="HIGH">สูง</option>
+                        <option value="URGENT">เร่งด่วน</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>ค้นหา</label>
+                    <input type="text" id="searchInput" placeholder="รหัสคำร้อง, อุปกรณ์...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Requests Table -->
+        <div class="requests-container">
+            <div class="table-header">
+                <h2>รายการคำร้องทั้งหมด</h2>
+            </div>
+
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>กำลังโหลดข้อมูล...</p>
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3>ยังไม่มีคำร้อง</h3>
+                <p>คุณยังไม่มีคำร้องแจ้งซ่อม คลิกปุ่ม "แจ้งซ่อมใหม่" เพื่อสร้างคำร้อง</p>
+            </div>
+
+            <table id="requestsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>รหัส</th>
+                        <th>อุปกรณ์</th>
+                        <th>ปัญหา</th>
+                        <th>ความสำคัญ</th>
+                        <th>สถานะ</th>
+                        <th>วันที่แจ้ง</th>
+                        <th>การกระทำ</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script>
+        let allRequests = [];
+        let filteredRequests = [];
+
+        // Initialize
+        async function init() {
+            console.log('🚀 Initializing my-requests page...');
+            
+            if (!requireAuth()) return;
+            
+            // Check user data
+            const user = getCurrentUser();
+            console.log('👤 Current user:', user);
+            
+            if (!user || !user.id) {
+                console.error('❌ No valid user data found');
+                alert('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+                localStorage.clear();
+                window.location.href = '../login.html';
+                return;
+            }
+            
+            updateUserDisplay();
+            await loadRequests();
+            setupEventListeners();
+        }
+
+       async function loadRequests() {
+    showLoading();
+    try {
+        console.log('📡 Fetching maintenance requests...');
+
+        // ✅ ขอเฉพาะคำร้องของ user คนนี้จาก backend เลย
+        const response = await getMaintenanceRequests({ my_requests: 'true' });
+        console.log('📦 Response:', response);
+        
+        // backend ส่งมาเฉพาะของเราแล้ว ไม่ต้อง filter ซ้ำ
+        allRequests = response.results || response || [];
+        console.log('📋 My requests:', allRequests.length);
+
+        filteredRequests = [...allRequests];
+
+        updateStats();
+        displayRequests(filteredRequests);
+    } catch (error) {
+        console.error('❌ Failed to load requests:', error);
+        alert('ไม่สามารถโหลดข้อมูลได้: ' + error.message);
+        hideLoading();
+    } finally {
+        hideLoading();
+    }
+}
+
+        // Update statistics
+        function updateStats() {
+            const stats = {
+                pending: allRequests.filter(r => r.status === 'PENDING').length,
+                assigned: allRequests.filter(r => r.status === 'ASSIGNED').length,
+                progress: allRequests.filter(r => r.status === 'IN_PROGRESS').length,
+                completed: allRequests.filter(r => r.status === 'COMPLETED').length
+            };
+
+            document.getElementById('statPending').textContent = stats.pending;
+            document.getElementById('statAssigned').textContent = stats.assigned;
+            document.getElementById('statProgress').textContent = stats.progress;
+            document.getElementById('statCompleted').textContent = stats.completed;
+        }
+
+        // Display requests
+        function displayRequests(requests) {
+            const tbody = document.getElementById('requestsBody');
+            const table = document.getElementById('requestsTable');
+            const emptyState = document.getElementById('emptyState');
+
+            if (requests.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+
+            tbody.innerHTML = requests.map(req => `
+                <tr>
+                    <td><strong>${req.request_number || req.id}</strong></td>
+                    <td>${
+        (req.equipment_detail && req.equipment_detail.name) ||
+        req.equipment_name ||
+        (typeof req.equipment === 'string' ? req.equipment : '') ||
+    'ไม่ระบุอุปกรณ์'
+    }</td>
+                    <td>${req.description ? req.description.substring(0, 50) + '...' : '-'}</td>
+                    <td>
+                        <span class="priority-${req.priority?.toLowerCase() || 'low'}">
+                            ${getPriorityText(req.priority || 'LOW')}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${getStatusBadge(req.status)}">
+                            ${getStatusText(req.status)}
+                        </span>
+                    </td>
+                    <td>${formatDate(req.created_at)}</td>
+                    <td>
+                        <a href="request-detail.html?id=${req.id}" class="btn-view">
+                            ดูรายละเอียด
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Status filter
+            document.getElementById('filterStatus').addEventListener('change', applyFilters);
+            
+            // Priority filter
+            document.getElementById('filterPriority').addEventListener('change', applyFilters);
+            
+            // Search
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const status = document.getElementById('filterStatus').value;
+            const priority = document.getElementById('filterPriority').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredRequests = allRequests.filter(req => {
+                if (status && req.status !== status) return false;
+                if (priority && req.priority !== priority) return false;
+                if (search) {
+                    const searchFields = [
+                        req.request_number,
+                        req.equipment_name,
+                        req.description
+                    ].join(' ').toLowerCase();
+                    if (!searchFields.includes(search)) return false;
+                }
+                return true;
+            });
+
+            displayRequests(filteredRequests);
+        }
+
+        // Show/hide loading
+        function showLoading() {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('requestsTable').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+
+        // Initialize when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
