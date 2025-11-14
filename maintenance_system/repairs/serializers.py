@@ -1,19 +1,114 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.models import User
 from .models import Equipment, Technician, MaintenanceRequest, RepairLog
 
 
+# =====================================================
+# Custom JWT Token Serializer
+# =====================================================
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Custom JWT Serializer ที่ส่ง user data พร้อม token"""
+    
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # กำหนด role อย่างชัดเจน
+        if user.is_superuser:
+            role = 'admin'
+        elif user.is_staff:
+            role = 'admin'
+        elif hasattr(user, 'technician'):
+            role = 'technician'
+        else:
+            role = 'user'
+        
+        # เพิ่มข้อมูล custom ลงใน token payload
+        token['username'] = user.username
+        token['email'] = user.email
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        token['role'] = role
+        token['user_id'] = user.id
+        
+        return token
+    
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # เพิ่มข้อมูล user ใน response
+        user = self.user
+        
+        # กำหนด role อย่างชัดเจน
+        if user.is_superuser:
+            role = 'admin'
+        elif user.is_staff:
+            role = 'admin'
+        elif hasattr(user, 'technician'):
+            role = 'technician'
+        else:
+            role = 'user'
+        
+        # 🔍 Debug: แสดง role ที่กำหนดให้
+        print(f"🎭 Login: {user.username} - Role: {role} (is_staff: {user.is_staff}, is_superuser: {user.is_superuser})")
+        
+        data['user'] = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'full_name': user.get_full_name() or user.username,
+            'role': role,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser
+        }
+        
+        return data
+
+
+# =====================================================
+# User Serializers
+# =====================================================
+
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer สำหรับ User"""
+    """Serializer สำหรับ User พร้อมแสดงบทบาท"""
     full_name = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
+    role_display = serializers.SerializerMethodField()
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 
+                  'full_name', 'role', 'role_display', 'is_active', 'is_staff']
         read_only_fields = ['id']
     
     def get_full_name(self, obj):
         return obj.get_full_name() or obj.username
+    
+    def get_role(self, obj):
+        """ส่งค่า role เป็นภาษาอังกฤษสำหรับใช้ใน logic"""
+        if obj.is_superuser:
+            return 'admin'
+        elif obj.is_staff:
+            return 'admin'
+        elif hasattr(obj, 'technician'):
+            return 'technician'
+        else:
+            return 'user'
+    
+    def get_role_display(self, obj):
+        """ส่งค่า role เป็นภาษาไทยสำหรับแสดงผล"""
+        if obj.is_superuser:
+            return 'ผู้ดูแลระบบสูงสุด'
+        elif obj.is_staff:
+            return 'ผู้ดูแลระบบ'
+        elif hasattr(obj, 'technician'):
+            return 'ช่างซ่อม'
+        else:
+            return 'ผู้ใช้งาน'
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -37,6 +132,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+# =====================================================
+# Equipment Serializer
+# =====================================================
+
 class EquipmentSerializer(serializers.ModelSerializer):
     """Serializer สำหรับอุปกรณ์"""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -50,6 +149,10 @@ class EquipmentSerializer(serializers.ModelSerializer):
     def get_total_maintenance_requests(self, obj):
         return obj.maintenance_requests.count()
 
+
+# =====================================================
+# Technician Serializer
+# =====================================================
 
 class TechnicianSerializer(serializers.ModelSerializer):
     """Serializer สำหรับช่างซ่อม"""
@@ -73,6 +176,10 @@ class TechnicianSerializer(serializers.ModelSerializer):
         ).count()
 
 
+# =====================================================
+# Maintenance Request Serializers
+# =====================================================
+
 class MaintenanceRequestListSerializer(serializers.ModelSerializer):
     """Serializer สำหรับแสดงรายการแจ้งซ่อม (ย่อ)"""
     requester = UserSerializer(read_only=True)
@@ -90,14 +197,23 @@ class MaintenanceRequestListSerializer(serializers.ModelSerializer):
 
 
 class MaintenanceRequestSerializer(serializers.ModelSerializer):
-    """Serializer สำหรับแจ้งซ่อม (เต็ม)"""
+    """Serializer สำหรับแจ้งซ่อม (เต็ม) - รองรับทั้ง equipment และ equipment_id"""
     requester = UserSerializer(read_only=True)
     equipment_detail = EquipmentSerializer(source='equipment', read_only=True)
+    
+    # ✅ รองรับทั้ง equipment_id และ equipment
     equipment_id = serializers.PrimaryKeyRelatedField(
         queryset=Equipment.objects.all(),
         source='equipment',
-        write_only=True
+        write_only=True,
+        required=False  # ทำให้เป็น optional
     )
+    equipment = serializers.PrimaryKeyRelatedField(
+        queryset=Equipment.objects.all(),
+        write_only=True,
+        required=False  # ทำให้เป็น optional
+    )
+    
     assigned_technician_detail = TechnicianSerializer(
         source='assigned_technician', 
         read_only=True
@@ -119,6 +235,14 @@ class MaintenanceRequestSerializer(serializers.ModelSerializer):
         read_only_fields = ['request_code', 'requester', 'created_at', 
                             'updated_at', 'completed_at']
     
+    def validate(self, data):
+        """ตรวจสอบว่าต้องมี equipment_id หรือ equipment อย่างน้อย 1 อัน"""
+        if 'equipment' not in data and 'equipment_id' not in self.initial_data:
+            raise serializers.ValidationError({
+                'equipment_id': 'กรุณาระบุอุปกรณ์'
+            })
+        return data
+    
     def get_repair_logs(self, obj):
         logs = obj.repair_logs.all()
         return RepairLogSerializer(logs, many=True).data
@@ -128,6 +252,10 @@ class MaintenanceRequestSerializer(serializers.ModelSerializer):
         validated_data['requester'] = self.context['request'].user
         return super().create(validated_data)
 
+
+# =====================================================
+# Repair Log Serializer
+# =====================================================
 
 class RepairLogSerializer(serializers.ModelSerializer):
     """Serializer สำหรับบันทึกการซ่อม"""
@@ -159,6 +287,10 @@ class RepairLogSerializer(serializers.ModelSerializer):
             return round(delta.total_seconds() / 3600, 2)
         return None
 
+
+# =====================================================
+# Statistics Serializer
+# =====================================================
 
 class MaintenanceRequestStatsSerializer(serializers.Serializer):
     """Serializer สำหรับสถิติ"""
