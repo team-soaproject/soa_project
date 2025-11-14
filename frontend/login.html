@@ -337,11 +337,11 @@
     const roleStr = (role || '').toString().toLowerCase();
     
     if (roleStr === 'admin' || roleStr === 'administrator') {
-        return 'all-requests.html'; // ✅ Same folder
+        return '../frontend/admin/dashboard.html'; // ✅ Same folder
     } else if (roleStr === 'technician' || roleStr === 'tech') {
-        return 'dashboard.html';
+        return '../frontend/technician/dashboard.html';
     } else {
-        return 'dashboard.html';
+        return '../frontend/user/dashboard.html';
     }
 }
 
