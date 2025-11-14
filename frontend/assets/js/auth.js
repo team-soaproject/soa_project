@@ -324,17 +324,20 @@ function updateUserDisplay() {
 // =====================================================
 
 function logout() {
-    console.log('🚪 Logging out...');
+    // ลบข้อมูลทั้งหมด
+    localStorage.clear();
+    sessionStorage.clear();
     
-    localStorage.removeItem('token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('username');
-    localStorage.removeItem('user_profile');
-    localStorage.removeItem('user_role');
+    // ตรวจสอบ role เพื่อ redirect ไปหน้า login ที่เหมาะสม
+    const role = localStorage.getItem('role');
     
-    window.location.href = '../login.html';
+    if (role === 'admin') {
+        window.location.href = '/frontend/admin/login.html'; // ถ้ามี admin login
+    } else if (role === 'technician') {
+        window.location.href = '/frontend/technician/login.html'; // ถ้ามี technician login
+    } else { 
+        window.location.href = '/frontend/user/login.html'; // default user login
+    }
 }
 
 // =====================================================

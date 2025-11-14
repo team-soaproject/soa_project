@@ -660,12 +660,11 @@
         // Logout
         // ==========================================
         function logout() {
-            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
-                console.log('🚪 Logging out...');
-                localStorage.clear();
-                window.location.href = 'login.html';
-            }
-        }
+    localStorage.clear();
+    sessionStorage.clear();
+    // ใช้ full URL
+    window.location.href = 'http://127.0.0.1:5500/frontend/login.html';
+}
 
         // ==========================================
         // Initialize Page
