@@ -267,10 +267,10 @@
         .badge-completed { background: #e8f5e9; color: #388e3c; }
         .badge-cancelled { background: #f5f5f5; color: #616161; }
 
-        .priority-low { color: #757575; }
-        .priority-medium { color: #1976d2; }
-        .priority-high { color: #f57c00; }
-        .priority-urgent { color: #d32f2f; }
+        .badge-low { background: #f5f5f5; color: #757575; }
+        .badge-medium { background: #e3f2fd; color: #1976d2; }
+        .badge-high { background: #fff3e0; color: #f57c00; }
+        .badge-urgent { background: #ffebee; color: #d32f2f; }
 
         .btn-view {
             padding: 8px 16px;
@@ -445,7 +445,7 @@
                         <th>รหัส</th>
                         <th>อุปกรณ์</th>
                         <th>ปัญหา</th>
-                        <th>ความสำคัญ</th>
+                        <th>ความเร่งด่วน</th>
                         <th>สถานะ</th>
                         <th>วันที่แจ้ง</th>
                         <th>การกระทำ</th>
@@ -457,62 +457,143 @@
         </div>
     </div>
 
-    <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/auth.js"></script>
     <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
         let allRequests = [];
         let filteredRequests = [];
 
-        // Initialize
-        async function init() {
-            console.log('🚀 Initializing my-requests page...');
-            
-            if (!requireAuth()) return;
-            
-            // Check user data
-            const user = getCurrentUser();
-            console.log('👤 Current user:', user);
-            
-            if (!user || !user.id) {
-                console.error('❌ No valid user data found');
-                alert('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
-                localStorage.clear();
-                window.location.href = '../login.html';
-                return;
-            }
-            
-            updateUserDisplay();
-            await loadRequests();
-            setupEventListeners();
+        // ==========================================
+        // Helper Functions
+        // ==========================================
+        function getCurrentUser() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) return null;
+            return JSON.parse(userStr);
         }
 
-       async function loadRequests() {
-    showLoading();
-    try {
-        console.log('📡 Fetching maintenance requests...');
+        function requireAuth() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '../login.html';
+                return false;
+            }
+            return true;
+        }
 
-        // ✅ ขอเฉพาะคำร้องของ user คนนี้จาก backend เลย
-        const response = await getMaintenanceRequests({ my_requests: 'true' });
-        console.log('📦 Response:', response);
-        
-        // backend ส่งมาเฉพาะของเราแล้ว ไม่ต้อง filter ซ้ำ
-        allRequests = response.results || response || [];
-        console.log('📋 My requests:', allRequests.length);
+        function updateUserDisplay() {
+            const user = getCurrentUser();
+            if (user) {
+                document.getElementById('userName').textContent = 
+                    user.first_name || user.username || 'ผู้ใช้';
+                document.getElementById('userRole').textContent = 'ผู้ใช้งาน';
+            }
+        }
 
-        filteredRequests = [...allRequests];
+        function getPriorityText(priority) {
+            const texts = {
+                'LOW': 'ปกติ',
+                'MEDIUM': 'ด่วน',
+                'HIGH': 'ด่วนมาก',
+                'URGENT': 'เร่งด่วน'
+            };
+            return texts[priority] || priority;
+        }
 
-        updateStats();
-        displayRequests(filteredRequests);
-    } catch (error) {
-        console.error('❌ Failed to load requests:', error);
-        alert('ไม่สามารถโหลดข้อมูลได้: ' + error.message);
-        hideLoading();
-    } finally {
-        hideLoading();
-    }
-}
+        function getStatusText(status) {
+            const texts = {
+                'PENDING': 'รอดำเนินการ',
+                'ASSIGNED': 'มอบหมายแล้ว',
+                'IN_PROGRESS': 'กำลังดำเนินการ',
+                'COMPLETED': 'เสร็จสิ้น',
+                'CANCELLED': 'ยกเลิก'
+            };
+            return texts[status] || status;
+        }
 
-        // Update statistics
+        function getStatusBadge(status) {
+            const badges = {
+                'PENDING': 'badge-pending',
+                'ASSIGNED': 'badge-assigned',
+                'IN_PROGRESS': 'badge-progress',
+                'COMPLETED': 'badge-completed',
+                'CANCELLED': 'badge-cancelled'
+            };
+            return badges[status] || 'badge-pending';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ==========================================
+        // API Calls
+        // ==========================================
+        async function getMaintenanceRequests() {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`${API_BASE_URL}/api/maintenance-requests/?ordering=-created_at`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.status === 401) {
+                localStorage.clear();
+                window.location.href = '../login.html';
+                throw new Error('Session expired');
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        // ==========================================
+        // Load Requests
+        // ==========================================
+        async function loadRequests() {
+            showLoading();
+            try {
+                const user = getCurrentUser();
+                const response = await getMaintenanceRequests();
+                
+                let allRequestsData = response.results || response || [];
+                
+                // Filter เฉพาะคำร้องของ user คนนี้
+                if (user && user.id) {
+                    allRequests = allRequestsData.filter(req => {
+                        return req.requester === user.id || 
+                               req.requester_id === user.id ||
+                               (req.requester && typeof req.requester === 'object' && req.requester.id === user.id);
+                    });
+                } else {
+                    allRequests = allRequestsData;
+                }
+
+                filteredRequests = [...allRequests];
+                updateStats();
+                displayRequests(filteredRequests);
+            } catch (error) {
+                console.error('Failed to load requests:', error);
+                alert('ไม่สามารถโหลดข้อมูลได้: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // ==========================================
+        // Update Statistics
+        // ==========================================
         function updateStats() {
             const stats = {
                 pending: allRequests.filter(r => r.status === 'PENDING').length,
@@ -527,7 +608,9 @@
             document.getElementById('statCompleted').textContent = stats.completed;
         }
 
-        // Display requests
+        // ==========================================
+        // Display Requests (แก้ไขแล้ว)
+        // ==========================================
         function displayRequests(requests) {
             const tbody = document.getElementById('requestsBody');
             const table = document.getElementById('requestsTable');
@@ -542,49 +625,65 @@
             table.style.display = 'table';
             emptyState.style.display = 'none';
 
-            tbody.innerHTML = requests.map(req => `
-                <tr>
-                    <td><strong>${req.request_number || req.id}</strong></td>
-                    <td>${
-        (req.equipment_detail && req.equipment_detail.name) ||
-        req.equipment_name ||
-        (typeof req.equipment === 'string' ? req.equipment : '') ||
-    'ไม่ระบุอุปกรณ์'
-    }</td>
-                    <td>${req.description ? req.description.substring(0, 50) + '...' : '-'}</td>
-                    <td>
-                        <span class="priority-${req.priority?.toLowerCase() || 'low'}">
-                            ${getPriorityText(req.priority || 'LOW')}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge ${getStatusBadge(req.status)}">
-                            ${getStatusText(req.status)}
-                        </span>
-                    </td>
-                    <td>${formatDate(req.created_at)}</td>
-                    <td>
-                        <a href="request-detail.html?id=${req.id}" class="btn-view">
-                            ดูรายละเอียด
-                        </a>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = requests.map(req => {
+                // Get request code (เหมือน Dashboard)
+                const requestCode = req.request_code || req.request_number || req.id;
+                
+                // Get equipment name (เหมือน Dashboard)
+                let equipmentName = '-';
+                if (req.equipment && req.equipment.name) {
+                    equipmentName = req.equipment.name;
+                } else if (req.equipment_detail && req.equipment_detail.name) {
+                    equipmentName = req.equipment_detail.name;
+                } else if (req.equipment_name) {
+                    equipmentName = req.equipment_name;
+                }
+
+                // Get problem description (เหมือน Dashboard)
+                const problemDesc = req.problem_description || req.description || '-';
+                const displayDesc = problemDesc.length > 50 
+                    ? problemDesc.substring(0, 50) + '...' 
+                    : problemDesc;
+
+                return `
+                    <tr>
+                        <td><strong>${requestCode}</strong></td>
+                        <td>${equipmentName}</td>
+                        <td>${displayDesc}</td>
+                        <td>
+                            <span class="badge badge-${(req.priority || 'LOW').toLowerCase()}">
+                                ${getPriorityText(req.priority || 'LOW')}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge ${getStatusBadge(req.status)}">
+                                ${getStatusText(req.status)}
+                            </span>
+                        </td>
+                        <td>${formatDate(req.created_at)}</td>
+                        <td>
+                            <a href="request-detail.html?id=${req.id}" class="btn-view">
+                                ดูรายละเอียด
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        // Setup event listeners
+        // ==========================================
+        // Setup Event Listeners
+        // ==========================================
         function setupEventListeners() {
-            // Status filter
             document.getElementById('filterStatus').addEventListener('change', applyFilters);
-            
-            // Priority filter
             document.getElementById('filterPriority').addEventListener('change', applyFilters);
-            
-            // Search
             document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
         }
 
-        // Apply filters
+        // ==========================================
+        // Apply Filters
+        // ==========================================
         function applyFilters() {
             const status = document.getElementById('filterStatus').value;
             const priority = document.getElementById('filterPriority').value;
@@ -595,8 +694,12 @@
                 if (priority && req.priority !== priority) return false;
                 if (search) {
                     const searchFields = [
+                        req.request_code,
                         req.request_number,
+                        req.equipment?.name,
+                        req.equipment_detail?.name,
                         req.equipment_name,
+                        req.problem_description,
                         req.description
                     ].join(' ').toLowerCase();
                     if (!searchFields.includes(search)) return false;
@@ -607,7 +710,9 @@
             displayRequests(filteredRequests);
         }
 
-        // Show/hide loading
+        // ==========================================
+        // Show/Hide Loading
+        // ==========================================
         function showLoading() {
             document.getElementById('loadingIndicator').style.display = 'block';
             document.getElementById('requestsTable').style.display = 'none';
@@ -618,7 +723,27 @@
             document.getElementById('loadingIndicator').style.display = 'none';
         }
 
-        // Initialize when page loads
+        // ==========================================
+        // Logout
+        // ==========================================
+        function logout() {
+            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+                localStorage.clear();
+                window.location.href = '../login.html';
+            }
+        }
+
+        // ==========================================
+        // Initialize
+        // ==========================================
+        async function init() {
+            if (!requireAuth()) return;
+            updateUserDisplay();
+            await loadRequests();
+            setupEventListeners();
+        }
+
+        // Run on page load
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
         } else {
