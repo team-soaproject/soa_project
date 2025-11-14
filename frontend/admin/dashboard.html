@@ -105,6 +105,7 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+
         }
 
         .stats-grid {
@@ -330,11 +331,11 @@
         }
 
         function logout() {
-            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
-                localStorage.clear();
-                window.location.href = '../login.html';  // ⬅️ เปลี่ยนเป็น ../login.html
-            }
-        }
+    localStorage.clear();
+    sessionStorage.clear();
+    // ใช้ full URL
+    window.location.href = '/frontend/login.html';
+}
 
         loadStats();
     </script>
