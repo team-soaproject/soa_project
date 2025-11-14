@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แจ้งซ่อมใหม่ - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 20px;
+        }
+
+        .user-info {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .menu {
+            list-style: none;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .menu a:hover, .menu a.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .menu a span {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .btn-logout {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 800px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-upload {
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-preview {
+            margin-top: 15px;
+        }
+
+        .file-preview img {
+            max-width: 300px;
+            border-radius: 8px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h2>🔧 ระบบแจ้งซ่อม</h2>
+        </div>
+
+        <div class="user-info">
+            <p><strong id="userName">Loading...</strong></p>
+            <span class="role-badge" id="userRole">Loading...</span>
+        </div>
+
+        <ul class="menu">
+            <li><a href="dashboard.html"><span>📊</span> Dashboard</a></li>
+            <li><a href="my-requests.html"><span>📋</span> คำร้องของฉัน</a></li>
+            <li><a href="create-request.html" class="active"><span>➕</span> แจ้งซ่อมใหม่</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>แจ้งซ่อมใหม่</h1>
+            <button class="btn-logout" id="logoutBtn">ออกจากระบบ</button>
+        </div>
+
+        <div class="form-container">
+            <div id="alertContainer"></div>
+
+            <form id="requestForm">
+                <div class="form-group">
+                    <label>อุปกรณ์ <span class="required">*</span></label>
+                    <select id="equipment" required>
+                        <option value="">-- เลือกอุปกรณ์ --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>รายละเอียดปัญหา <span class="required">*</span></label>
+                    <textarea id="problemDescription" required placeholder="กรุณาอธิบายปัญหาที่เกิดขึ้นโดยละเอียด"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>ความเร่งด่วน <span class="required">*</span></label>
+                    <select id="priority" required>
+                        <option value="LOW">ปกติ</option>
+                        <option value="MEDIUM">ด่วน</option>
+                        <option value="HIGH">ด่วนมาก</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>รูปภาพปัญหา (ถ้ามี)</label>
+                    <div class="file-upload" onclick="document.getElementById('problemImage').click()">
+                        <p>📷 คลิกเพื่ออัพโหลดรูปภาพ</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 5MB</p>
+                        <input type="file" id="problemImage" accept="image/*" onchange="previewImage(event)">
+                    </div>
+                    <div id="imagePreview" class="file-preview"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        ส่งคำร้อง
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+                        ยกเลิก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script>
+        // ✅ ใช้ helper functions จาก auth.js และ api.js
+        if (!requireAuth()) {}
+        
+        const user = getCurrentUser();
+        const userRole = getUserRole();
+        
+        updateUserDisplay();
+
+        function showAlert(message, type = 'error') {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    showAlert('ขนาดไฟล์ใหญ่เกินไป (สูงสุด 5MB)');
+                    event.target.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Load equipment list
+        async function loadEquipment() {
+            try {
+                const data = await equipmentAPI.list();
+                const equipment = data.results || data;
+                
+                const select = document.getElementById('equipment');
+                equipment.forEach(item => {
+                    if (item.status === 'ACTIVE') {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = `${item.name} (${item.department})`;
+                        select.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading equipment:', error);
+                showAlert('ไม่สามารถโหลดรายการอุปกรณ์ได้');
+            }
+        }
+
+        // ✅ Submit form - ใช้ maintenanceAPI.create()
+        document.getElementById('requestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'กำลังส่งคำร้อง...';
+            
+            try {
+                const formData = new FormData();
+                
+                formData.append('equipment', document.getElementById('equipment').value);
+                formData.append('problem_description', document.getElementById('problemDescription').value);
+                formData.append('priority', document.getElementById('priority').value);
+                
+                const imageFile = document.getElementById('problemImage').files[0];
+                if (imageFile) {
+                    formData.append('problem_image', imageFile);
+                }
+                
+                console.log('Sending data:', {
+                    equipment: document.getElementById('equipment').value,
+                    problem_description: document.getElementById('problemDescription').value,
+                    priority: document.getElementById('priority').value,
+                    has_image: !!imageFile
+                });
+                
+                // ✅ ใช้ API wrapper
+                const data = await maintenanceAPI.create(formData);
+                
+                console.log('Success:', data);
+                showAlert('ส่งคำร้องสำเร็จ! รหัสคำร้อง: ' + (data.request_code || data.id), 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'my-requests.html';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Submit Error:', error);
+                showAlert(error.message || 'เกิดข้อผิดพลาดในการส่งคำร้อง');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'ส่งคำร้อง';
+            }
+        });
+
+        loadEquipment();
+    </script>
+</body>
+</html>

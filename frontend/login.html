@@ -4,74 +4,491 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เข้าสู่ระบบ - ระบบแจ้งซ่อมอุปกรณ์</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .login-header .icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .login-body {
+            padding: 40px 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper .icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 18px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-login:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .demo-accounts {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .demo-accounts h3 {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #666;
+            text-align: center;
+        }
+
+        .demo-account {
+            background: white;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .demo-account:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .demo-account .role {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .demo-account .credentials {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .divider span {
+            padding: 0 10px;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                max-width: 100%;
+            }
+            
+            .login-header {
+                padding: 30px 20px;
+            }
+            
+            .login-body {
+                padding: 30px 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <h2>เข้าสู่ระบบ</h2>
-            <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="icon">🔧</div>
+            <h1>ระบบแจ้งซ่อม</h1>
+            <p>กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+        </div>
+
+        <div class="login-body">
+            <div id="errorMessage" class="error-message"></div>
             
+            <div id="loadingIndicator" class="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">กำลังเข้าสู่ระบบ...</p>
+            </div>
+
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="username" class="form-label">ชื่อผู้ใช้</label>
-                    <input type="text" id="username" class="form-control" required>
+                    <label for="username">ชื่อผู้ใช้</label>
+                    <div class="input-wrapper">
+                        <span class="icon">👤</span>
+                        <input type="text" id="username" name="username" required 
+                               placeholder="กรอกชื่อผู้ใช้" autocomplete="username">
+                    </div>
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="password" class="form-label">รหัสผ่าน</label>
-                    <input type="password" id="password" class="form-control" required>
+                    <label for="password">รหัสผ่าน</label>
+                    <div class="input-wrapper">
+                        <span class="icon">🔒</span>
+                        <input type="password" id="password" name="password" required 
+                               placeholder="กรอกรหัสผ่าน" autocomplete="current-password">
+                    </div>
                 </div>
-                
-                <button type="submit" class="btn btn-primary" style="width: 100%;">เข้าสู่ระบบ</button>
+
+                <button type="submit" class="btn-login" id="loginBtn">
+                    เข้าสู่ระบบ
+                </button>
             </form>
-            
-            <div class="auth-link">
-                ยังไม่มีบัญชี? <a href="register.html">ลงทะเบียน</a>
+
+            <div class="divider">
+                <span>หรือ</span>
+            </div>
+
+            <div class="demo-accounts">
+                <h3>💡 บัญชีทดสอบ (คลิกเพื่อใช้งาน)</h3>
+                
+                <div class="demo-account" onclick="fillCredentials('admin', 'admin123')">
+                    <div class="role">⚙️ Admin (ผู้ดูแลระบบ)</div>
+                    <div class="credentials">Username: admin | Password: admin123</div>
+                </div>
+
+                <div class="demo-account" onclick="fillCredentials('technician', 'tech123')">
+                    <div class="role">🔧 Technician (ช่างเทคนิค)</div>
+                    <div class="credentials">Username: technician | Password: tech123</div>
+                </div>
+
+                <div class="demo-account" onclick="fillCredentials('user', 'user123')">
+                    <div class="role">👤 User (ผู้ใช้ทั่วไป)</div>
+                    <div class="credentials">Username: user | Password: user123</div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <script src="assets/js/api.js"></script>
-    <script src="assets/js/auth.js"></script>
+
     <script>
-        // Redirect if already logged in
-        redirectIfAuthenticated();
-        
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+
+        // Check if already logged in
+        function checkExistingSession() {
+            const token = localStorage.getItem('access_token');
+            const userStr = localStorage.getItem('user');
+            
+            if (token && userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    const role = user.role || (user.is_superuser || user.is_staff ? 'admin' : 'user');
+                    
+                    console.log('✅ Already logged in, redirecting...');
+                    redirectToRole(role);
+                } catch (error) {
+                    console.error('Error parsing user data:', error);
+                    localStorage.clear();
+                }
+            }
+        }
+
+        function fillCredentials(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            document.getElementById('username').focus();
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function hideError() {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.classList.remove('show');
+        }
+
+        function showLoading() {
+            document.getElementById('loadingIndicator').classList.add('show');
+            document.getElementById('loginBtn').disabled = true;
+            document.getElementById('loginForm').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').classList.remove('show');
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function redirectToRole(role) {
+            console.log('🔄 Redirecting to role:', role);
+            
+            if (role === 'admin') {
+                window.location.href = './admin/dashboard.html';
+            } else if (role === 'technician') {
+                window.location.href = './technician/dashboard.html';
+            } else {
+                window.location.href = './user/dashboard.html';
+            }
+        }
+
+        async function login(username, password) {
+            hideError();
+            showLoading();
+
+            try {
+                console.log('🔐 Attempting login:', username);
+
+                const response = await fetch(`${API_BASE_URL}/api/auth/token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                }
+
+                if (!data.access) {
+                    throw new Error('ไม่ได้รับ token จากเซิร์ฟเวอร์');
+                }
+
+                // Store tokens
+                localStorage.setItem('access_token', data.access);
+                localStorage.setItem('token', data.access);
+                localStorage.setItem('refresh_token', data.refresh);
+
+                // Store user data
+                if (data.user) {
+                    // Ensure full_name is set
+                    if (!data.user.full_name && data.user.first_name) {
+                        data.user.full_name = data.user.first_name + (data.user.last_name ? ' ' + data.user.last_name : '');
+                    }
+                    if (!data.user.full_name) {
+                        data.user.full_name = data.user.username;
+                    }
+                    
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    console.log('✅ Login successful:', data.user);
+                    console.log('👤 User role:', data.user.role);
+                } else {
+                    // Decode JWT to get user info
+                    try {
+                        const tokenParts = data.access.split('.');
+                        const payload = JSON.parse(atob(tokenParts[1]));
+                        
+                        const fallbackUser = {
+                            id: payload.user_id,
+                            username: payload.username || username,
+                            email: payload.email || '',
+                            first_name: payload.first_name || username,
+                            last_name: payload.last_name || '',
+                            full_name: payload.full_name || payload.first_name || username,
+                            role: payload.role || 'user',
+                            is_staff: payload.is_staff || false,
+                            is_superuser: payload.is_superuser || false
+                        };
+                        
+                        localStorage.setItem('user', JSON.stringify(fallbackUser));
+                        console.log('✅ Fallback user data created:', fallbackUser);
+                    } catch (e) {
+                        console.error('❌ Cannot decode JWT token:', e);
+                        throw new Error('ไม่สามารถดึงข้อมูลผู้ใช้ได้');
+                    }
+                }
+
+                // Get final user data
+                const userStr = localStorage.getItem('user');
+                const user = JSON.parse(userStr);
+                const role = user.role || (user.is_superuser || user.is_staff ? 'admin' : 'user');
+                
+                console.log('🔄 Redirecting based on role:', role);
+                
+                // Small delay to ensure storage is set
+                setTimeout(() => {
+                    redirectToRole(role);
+                }, 100);
+
+            } catch (error) {
+                console.error('❌ Login failed:', error);
+                showError(error.message);
+                hideLoading();
+            }
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('errorMessage');
-            
-            try {
-                // Login
-                const tokenResponse = await authAPI.login(username, password);
-                
-                // Get user profile
-                localStorage.setItem('access_token', tokenResponse.access);
-                localStorage.setItem('refresh_token', tokenResponse.refresh);
-                
-                const profileResponse = await authAPI.getProfile();
-                
-                // Save user data
-                saveAuthData(
-                    tokenResponse.access,
-                    tokenResponse.refresh,
-                    profileResponse.user
-                );
-                
-                localStorage.setItem('profile', JSON.stringify(profileResponse));
-                
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
-                
-            } catch (error) {
-                errorDiv.style.display = 'block';
-                errorDiv.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+
+            if (!username || !password) {
+                showError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+                return;
             }
+
+            await login(username, password);
         });
+
+        // Auto-focus username field
+        document.getElementById('username').focus();
+
+        // Check existing session on load
+        checkExistingSession();
     </script>
 </body>
 </html>

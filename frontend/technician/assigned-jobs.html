@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>งานที่ได้รับมอบหมาย - ระบบแจ้งซ่อม</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 0; overflow-y: auto; }
+        .logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .logo h2 { font-size: 20px; }
+        .user-info { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .role-badge { display: inline-block; padding: 4px 12px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 12px; margin-top: 5px; }
+        .menu { list-style: none; }
+        .menu a { display: flex; align-items: center; padding: 12px 20px; color: white; text-decoration: none; transition: background 0.3s; }
+        .menu a:hover, .menu a.active { background: rgba(255,255,255,0.2); }
+        .menu a span { margin-right: 10px; font-size: 18px; }
+        .main-content { margin-left: 260px; padding: 20px; }
+        .header { background: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; color: #333; }
+        .btn-logout { padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .stat-card .number { font-size: 32px; font-weight: bold; color: #333; }
+        .stat-card.pending { border-left: 4px solid #f39c12; }
+        .stat-card.in-progress { border-left: 4px solid #3498db; }
+        .stat-card.completed { border-left: 4px solid #2ecc71; }
+        .content-section { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #f0f0f0; }
+        .tab { padding: 12px 24px; background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 600; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; color: #333; font-size: 14px; }
+        table td { padding: 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #666; }
+        table tr:hover { background: #f8f9fa; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-in-progress { background: #cce5ff; color: #004085; }
+        .badge-completed { background: #d4edda; color: #155724; }
+        .badge-high { background: #f8d7da; color: #721c24; }
+        .badge-medium { background: #fff3cd; color: #856404; }
+        .badge-low { background: #d1ecf1; color: #0c5460; }
+        .btn-action { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 5px; }
+        .btn-view { background: #3498db; color: white; }
+        .btn-start { background: #28a745; color: white; }
+        .btn-complete { background: #ffc107; color: #333; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state .icon { font-size: 64px; margin-bottom: 20px; }
+        .loading { text-align: center; padding: 40px; color: #667eea; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo"><h2>🔧 ระบบแจ้งซ่อม</h2></div>
+        <div class="user-info">
+            <p><strong id="userName">Loading...</strong></p>
+            <span class="role-badge" id="userRole">Loading...</span>
+        </div>
+        <ul class="menu">
+            <li><a href="dashboard.html"><span>📊</span> Dashboard</a></li>
+            <li><a href="assigned-jobs.html" class="active"><span>🔧</span> งานที่ได้รับมอบหมาย</a></li>
+            <li><a href="../user/create-request.html"><span>➕</span> แจ้งซ่อมใหม่</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>งานที่ได้รับมอบหมาย</h1>
+            <button class="btn-logout" id="logoutBtn">ออกจากระบบ</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card pending">
+                <h3>งานใหม่</h3>
+                <div class="number" id="newJobs">0</div>
+            </div>
+            <div class="stat-card in-progress">
+                <h3>กำลังดำเนินการ</h3>
+                <div class="number" id="inProgressJobs">0</div>
+            </div>
+            <div class="stat-card completed">
+                <h3>เสร็จสิ้น</h3>
+                <div class="number" id="completedJobs">0</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="tabs">
+                <button class="tab active" data-tab="pending">งานใหม่</button>
+                <button class="tab" data-tab="in_progress">กำลังดำเนินการ</button>
+                <button class="tab" data-tab="completed">เสร็จสิ้น</button>
+            </div>
+
+            <div class="table-container">
+                <div id="jobsLoading" class="loading">กำลังโหลดข้อมูล...</div>
+                <div id="jobsContainer" style="display: none;">
+                    <table id="jobsTable">
+                        <thead>
+                            <tr>
+                                <th>รหัส</th>
+                                <th>อุปกรณ์</th>
+                                <th>ปัญหา</th>
+                                <th>ความเร่งด่วน</th>
+                                <th>สถานะ</th>
+                                <th>วันที่แจ้ง</th>
+                                <th>การกระทำ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobsBody"></tbody>
+                    </table>
+                </div>
+                <div id="jobsEmpty" class="empty-state" style="display: none;">
+                    <div class="icon">📋</div>
+                    <h3>ไม่มีงานในหมวดนี้</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script>
+        if (!requireAuth()) {}
+
+        const currentUser = getCurrentUser();
+        const userRole = getUserRole();
+
+        if (userRole !== 'technician' && userRole !== 'admin') {
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+            window.location.href = '../user/dashboard.html';
+        }
+
+        let currentTab = 'pending';
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentTab = this.dataset.tab;
+                loadJobs();
+            });
+        });
+
+        async function loadStats() {
+            try {
+                const data = await maintenanceAPI.list({ ordering: '-created_at' });
+                const requests = data.results || data;
+                const myJobs = requests.filter(req => 
+                    req.assigned_technician_detail?.user?.id === currentUser.id
+                );
+
+                document.getElementById('newJobs').textContent = myJobs.filter(r => r.status === 'PENDING').length;
+                document.getElementById('inProgressJobs').textContent = myJobs.filter(r => r.status === 'IN_PROGRESS').length;
+                document.getElementById('completedJobs').textContent = myJobs.filter(r => r.status === 'COMPLETED').length;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadJobs() {
+            try {
+                let statusFilter = '';
+                if (currentTab === 'pending') statusFilter = 'PENDING';
+                else if (currentTab === 'in_progress') statusFilter = 'IN_PROGRESS';
+                else if (currentTab === 'completed') statusFilter = 'COMPLETED';
+
+                const data = await maintenanceAPI.list({ 
+                    ordering: '-created_at', 
+                    status: statusFilter 
+                });
+                
+                let jobs = data.results || data;
+                jobs = jobs.filter(req => req.assigned_technician_detail?.user?.id === currentUser.id);
+
+                document.getElementById('jobsLoading').style.display = 'none';
+
+                if (jobs.length === 0) {
+                    document.getElementById('jobsEmpty').style.display = 'block';
+                    document.getElementById('jobsContainer').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('jobsEmpty').style.display = 'none';
+                document.getElementById('jobsContainer').style.display = 'block';
+
+                const tbody = document.getElementById('jobsBody');
+                tbody.innerHTML = jobs.map(req => {
+                    let actionButton = `<button class="btn-action btn-view" onclick="viewRequest(${req.id})">ดูรายละเอียด</button>`;
+                    
+                    if (req.status === 'PENDING') {
+                        actionButton += `<button class="btn-action btn-start" onclick="startJob(${req.id})">เริ่มงาน</button>`;
+                    } else if (req.status === 'IN_PROGRESS') {
+                        actionButton += `<button class="btn-action btn-complete" onclick="completeJob(${req.id})">ปิดงาน</button>`;
+                    }
+
+                    return `
+                        <tr>
+                            <td><strong>${req.request_code}</strong></td>
+                            <td>${req.equipment?.name || req.equipment_detail?.name || '-'}</td>
+                            <td>${req.problem_description.substring(0, 50)}${req.problem_description.length > 50 ? '...' : ''}</td>
+                            <td><span class="badge badge-${req.priority.toLowerCase()}">${getPriorityText(req.priority)}</span></td>
+                            <td><span class="badge badge-${req.status.toLowerCase().replace('_', '-')}">${getStatusText(req.status)}</span></td>
+                            <td>${formatDate(req.created_at)}</td>
+                            <td>${actionButton}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('jobsLoading').textContent = 'เกิดข้อผิดพลาด';
+                alert('ไม่สามารถโหลดข้อมูลได้: ' + error.message);
+            }
+        }
+
+        function viewRequest(id) {
+            window.location.href = `request-detail.html?id=${id}`;
+        }
+
+        async function startJob(id) {
+            if (!confirm('เริ่มงานนี้หรือไม่?')) return;
+
+            try {
+                await maintenanceAPI.updateStatus(id, 'IN_PROGRESS', 'เริ่มดำเนินการซ่อม');
+                alert('เริ่มงานสำเร็จ');
+                loadStats();
+                loadJobs();
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        async function completeJob(id) {
+            if (!confirm('ปิดงานนี้หรือไม่?')) return;
+
+            try {
+                await maintenanceAPI.updateStatus(id, 'COMPLETED', 'ซ่อมเสร็จสิ้น');
+                alert('ปิดงานสำเร็จ');
+                loadStats();
+                loadJobs();
+            } catch (error) {
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        loadStats();
+        loadJobs();
+    </script>
+</body>
+</html>

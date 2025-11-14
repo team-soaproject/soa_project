@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ระบบแจ้งซ่อม</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 0; overflow-y: auto; z-index: 1000; }
+        .logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .logo h2 { font-size: 20px; }
+        .user-info { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .role-badge { display: inline-block; padding: 4px 12px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 12px; margin-top: 5px; }
+        .menu { list-style: none; }
+        .menu a { display: flex; align-items: center; padding: 12px 20px; color: white; text-decoration: none; transition: background 0.3s; }
+        .menu a:hover, .menu a.active { background: rgba(255,255,255,0.2); }
+        .menu a span { margin-right: 10px; font-size: 18px; }
+        .main-content { margin-left: 260px; padding: 20px; }
+        .header { background: white; padding: 20px 30px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; color: #333; }
+        .btn-logout { padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .stat-card .number { font-size: 32px; font-weight: bold; color: #333; }
+        .stat-card.total { border-left: 4px solid #9b59b6; }
+        .stat-card.pending { border-left: 4px solid #f39c12; }
+        .stat-card.in-progress { border-left: 4px solid #3498db; }
+        .stat-card.completed { border-left: 4px solid #2ecc71; }
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .action-btn { padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-decoration: none; color: #333; display: flex; align-items: center; gap: 15px; transition: transform 0.2s; }
+        .action-btn:hover { transform: translateY(-3px); }
+        .action-btn .icon { font-size: 32px; }
+        .content-section { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .content-section h2 { font-size: 20px; color: #333; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+        .loading { text-align: center; padding: 20px; color: #667eea; }
+        .error { text-align: center; padding: 20px; color: #e74c3c; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h2>🔧 ระบบแจ้งซ่อม</h2>
+        </div>
+        <div class="user-info">
+            <p><strong id="userName">กำลังโหลด...</strong></p>
+            <span class="role-badge" id="userRole">Admin</span>
+        </div>
+        <ul class="menu">
+            <li><a href="dashboard.html" class="active"><span>📊</span> Dashboard</a></li>
+            <li><a href="all-requests.html"><span>📋</span> คำร้องทั้งหมด</a></li>
+            <li><a href="equipment.html"><span>🖥️</span> จัดการอุปกรณ์</a></li>
+            <li><a href="users.html"><span>👥</span> จัดการผู้ใช้</a></li>
+            <li><a href="reports.html"><span>📈</span> รายงาน</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Admin Dashboard</h1>
+            <button class="btn-logout" id="logoutBtn">ออกจากระบบ</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <h3>คำร้องทั้งหมด</h3>
+                <div class="number" id="totalRequests">
+                    <span class="loading">⏳</span>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <h3>รอดำเนินการ</h3>
+                <div class="number" id="pendingRequests">
+                    <span class="loading">⏳</span>
+                </div>
+            </div>
+            <div class="stat-card in-progress">
+                <h3>กำลังดำเนินการ</h3>
+                <div class="number" id="inProgressRequests">
+                    <span class="loading">⏳</span>
+                </div>
+            </div>
+            <div class="stat-card completed">
+                <h3>เสร็จสิ้น</h3>
+                <div class="number" id="completedRequests">
+                    <span class="loading">⏳</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <h2 style="margin-bottom: 15px;">เมนูด่วน</h2>
+        <div class="quick-actions">
+            <a href="all-requests.html" class="action-btn">
+                <span class="icon">📋</span>
+                <div>
+                    <div style="font-weight: 600;">คำร้องทั้งหมด</div>
+                    <div style="font-size: 12px; color: #666;">จัดการคำร้องซ่อม</div>
+                </div>
+            </a>
+            <a href="equipment.html" class="action-btn">
+                <span class="icon">🖥️</span>
+                <div>
+                    <div style="font-weight: 600;">จัดการอุปกรณ์</div>
+                    <div style="font-size: 12px; color: #666;">เพิ่ม/แก้ไขอุปกรณ์</div>
+                </div>
+            </a>
+            <a href="users.html" class="action-btn">
+                <span class="icon">👥</span>
+                <div>
+                    <div style="font-weight: 600;">จัดการผู้ใช้</div>
+                    <div style="font-size: 12px; color: #666;">จัดการสิทธิ์ผู้ใช้</div>
+                </div>
+            </a>
+            <a href="reports.html" class="action-btn">
+                <span class="icon">📈</span>
+                <div>
+                    <div style="font-weight: 600;">รายงาน</div>
+                    <div style="font-size: 12px; color: #666;">ดูสถิติและรายงาน</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- System Info -->
+        <div class="content-section">
+            <h2>ข้อมูลระบบ</h2>
+            <p>ยินดีตอนรับสู่หน้าจัดการระบบแจ้งซ่อม</p>
+            <p style="margin-top: 10px; color: #666;">คุณสามารถจัดการคำร้องซ่อม อุปกรณ์ และผู้ใช้ได้จากเมนูด้านซ้าย</p>
+        </div>
+    </div>
+
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/api.js"></script>
+    
+    <script>
+        console.log('🚀 Dashboard initializing...');
+        
+        // ตรวจสอบ authentication ก่อน
+        if (!requireAuth()) {
+            throw new Error('Not authenticated');
+        }
+
+        // ตรวจสอบว่าเป็น admin หรือไม่
+        const userRole = getUserRole();
+        console.log('👤 User role:', userRole);
+        
+        if (userRole !== 'admin') {
+            console.log('❌ Access denied: not admin');
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+            
+            if (userRole === 'technician') {
+                window.location.href = '../technician/dashboard.html';
+            } else {
+                window.location.href = '../user/dashboard.html';
+            }
+            throw new Error('Access denied');
+        }
+
+        // โหลดข้อมูลสถิติ
+        async function loadStats() {
+            try {
+                console.log('📊 Loading statistics...');
+                
+                // ใช้ API ที่ปรับปรุงแล้ว
+                const stats = await maintenanceAPI.statistics();
+                console.log('✅ Statistics loaded:', stats);
+                
+                document.getElementById('totalRequests').textContent = stats.total_requests || 0;
+                document.getElementById('pendingRequests').textContent = stats.pending_requests || 0;
+                document.getElementById('inProgressRequests').textContent = stats.in_progress_requests || 0;
+                document.getElementById('completedRequests').textContent = stats.completed_requests || 0;
+                
+            } catch (error) {
+                console.error('❌ Error loading stats:', error);
+                
+                // แสดง error
+                document.getElementById('totalRequests').innerHTML = '<span class="error">!</span>';
+                document.getElementById('pendingRequests').innerHTML = '<span class="error">!</span>';
+                document.getElementById('inProgressRequests').innerHTML = '<span class="error">!</span>';
+                document.getElementById('completedRequests').innerHTML = '<span class="error">!</span>';
+                
+                // แสดงข้อความ error แบบเป็นมิตร
+                alert('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง\n\nError: ' + error.message);
+            }
+        }
+
+        // เมื่อหน้าโหลดเสร็จ
+        loadStats();
+    </script>
+</body>
+</html>
