@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการอุปกรณ์ - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 20px;
+        }
+
+        .user-info {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .menu {
+            list-style: none;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .menu a:hover, .menu a.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .menu a span {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .btn-logout {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .content-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-bar {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-new {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-under-repair {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-out-of-service {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h2>🔧 ระบบแจ้งซ่อม</h2>
+        </div>
+
+        <div class="user-info">
+            <p><strong id="userName">Loading...</strong></p>
+            <span class="role-badge" id="userRole">Loading...</span>
+        </div>
+
+        <ul class="menu">
+            <li><a href="dashboard.html"><span>📊</span> Dashboard</a></li>
+            <li><a href="my-requests.html"><span>📝</span> คำร้องของฉัน</a></li>
+            <li><a href="create-request.html"><span>➕</span> แจ้งซ่อมใหม่</a></li>
+            <li><a href="all-requests.html"><span>📋</span> คำร้องทั้งหมด</a></li>
+            <li><a href="equipment.html" class="active"><span>🖥️</span> จัดการอุปกรณ์</a></li>
+            <li><a href="users.html"><span>👥</span> จัดการผู้ใช้</a></li>
+            <li><a href="reports.html"><span>📈</span> รายงาน</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>จัดการอุปกรณ์</h1>
+            <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+        </div>
+
+        <div class="content-section">
+            <div class="toolbar">
+                <div class="search-bar">
+                    <input type="search" id="searchInput" placeholder="ค้นหาอุปกรณ์..." onkeyup="loadEquipment()">
+                </div>
+                <button class="btn-new" onclick="openAddModal()">+ เพิ่มอุปกรณ์</button>
+            </div>
+
+            <div class="table-container">
+                <div id="equipmentLoading" class="loading">กำลังโหลดข้อมูล...</div>
+                <div id="equipmentContainer" style="display: none;">
+                    <table id="equipmentTable">
+                        <thead>
+                            <tr>
+                                <th>รหัส</th>
+                                <th>ชื่ออุปกรณ์</th>
+                                <th>แผนก</th>
+                                <th>สถานที่</th>
+                                <th>สถานะ</th>
+                                <th>การกระทำ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="equipmentBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="equipmentEmpty" class="empty-state" style="display: none;">
+                    ไม่มีข้อมูลอุปกรณ์
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="equipmentModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">เพิ่มอุปกรณ์</h3>
+            <form id="equipmentForm">
+                <input type="hidden" id="equipmentId">
+                
+                <div class="form-group">
+                    <label>รหัสอุปกรณ์ <span style="color: red;">*</span></label>
+                    <input type="text" id="equipmentCode" required>
+                </div>
+
+                <div class="form-group">
+                    <label>ชื่ออุปกรณ์ <span style="color: red;">*</span></label>
+                    <input type="text" id="equipmentName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>แผนก <span style="color: red;">*</span></label>
+                    <input type="text" id="department" required>
+                </div>
+
+                <div class="form-group">
+                    <label>สถานที่ตั้ง <span style="color: red;">*</span></label>
+                    <input type="text" id="location" required>
+                </div>
+
+                <div class="form-group">
+                    <label>สถานะ <span style="color: red;">*</span></label>
+                    <select id="status" required>
+                        <option value="ACTIVE">ใช้งานได้</option>
+                        <option value="UNDER_REPAIR">กำลังซ่อม</option>
+                        <option value="OUT_OF_SERVICE">เสีย</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>รายละเอียด</label>
+                    <textarea id="description" rows="3"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const token = localStorage.getItem('access_token');
+        
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userRole = user.role || 'user';
+
+        if (userRole !== 'admin') {
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+            window.location.href = 'dashboard.html';
+        }
+
+        document.getElementById('userName').textContent = user.full_name || user.username;
+        document.getElementById('userRole').textContent = 'ผู้ดูแลระบบ';
+
+        function getStatusText(status) {
+            const texts = {
+                'ACTIVE': 'ใช้งานได้',
+                'UNDER_REPAIR': 'กำลังซ่อม',
+                'OUT_OF_SERVICE': 'เสีย'
+            };
+            return texts[status] || status;
+        }
+
+        async function loadEquipment() {
+            try {
+                const search = document.getElementById('searchInput').value;
+                let endpoint = `${API_BASE_URL}/api/equipment/?ordering=-created_at`;
+                
+                if (search) {
+                    endpoint += `&search=${search}`;
+                }
+
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load equipment');
+                }
+
+                const data = await response.json();
+                const equipment = data.results || data;
+
+                document.getElementById('equipmentLoading').style.display = 'none';
+
+                if (equipment.length === 0) {
+                    document.getElementById('equipmentEmpty').style.display = 'block';
+                    document.getElementById('equipmentContainer').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('equipmentEmpty').style.display = 'none';
+                document.getElementById('equipmentContainer').style.display = 'block';
+
+                const tbody = document.getElementById('equipmentBody');
+                tbody.innerHTML = equipment.map(item => `
+                    <tr>
+                        <td><strong>${item.equipment_code}</strong></td>
+                        <td>${item.name}</td>
+                        <td>${item.department}</td>
+                        <td>${item.location}</td>
+                        <td><span class="badge badge-${item.status.toLowerCase().replace('_', '-')}">${getStatusText(item.status)}</span></td>
+                        <td>
+                            <button class="btn-action btn-edit" onclick="editEquipment(${item.id})">แก้ไข</button>
+                            <button class="btn-action btn-delete" onclick="deleteEquipment(${item.id})">ลบ</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading equipment:', error);
+                document.getElementById('equipmentLoading').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'เพิ่มอุปกรณ์';
+            document.getElementById('equipmentForm').reset();
+            document.getElementById('equipmentId').value = '';
+            document.getElementById('equipmentModal').style.display = 'block';
+        }
+
+        async function editEquipment(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/equipment/${id}/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const equipment = await response.json();
+                    
+                    document.getElementById('modalTitle').textContent = 'แก้ไขอุปกรณ์';
+                    document.getElementById('equipmentId').value = equipment.id;
+                    document.getElementById('equipmentCode').value = equipment.equipment_code;
+                    document.getElementById('equipmentName').value = equipment.name;
+                    document.getElementById('department').value = equipment.department;
+                    document.getElementById('location').value = equipment.location;
+                    document.getElementById('status').value = equipment.status;
+                    document.getElementById('description').value = equipment.description || '';
+                    
+                    document.getElementById('equipmentModal').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาด');
+            }
+        }
+
+        async function deleteEquipment(id) {
+            if (!confirm('คุณต้องการลบอุปกรณ์นี้หรือไม่?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/equipment/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok || response.status === 204) {
+                    alert('ลบอุปกรณ์สำเร็จ');
+                    loadEquipment();
+                } else {
+                    throw new Error('Failed to delete');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาดในการลบอุปกรณ์');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('equipmentModal').style.display = 'none';
+        }
+
+        document.getElementById('equipmentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('equipmentId').value;
+            const data = {
+                equipment_code: document.getElementById('equipmentCode').value,
+                name: document.getElementById('equipmentName').value,
+                department: document.getElementById('department').value,
+                location: document.getElementById('location').value,
+                status: document.getElementById('status').value,
+                description: document.getElementById('description').value
+            };
+
+            try {
+                const url = id ? `${API_BASE_URL}/api/equipment/${id}/` : `${API_BASE_URL}/api/equipment/`;
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert(id ? 'แก้ไขอุปกรณ์สำเร็จ' : 'เพิ่มอุปกรณ์สำเร็จ');
+                    closeModal();
+                    loadEquipment();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to save');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        });
+
+        function logout() {
+            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+
+        loadEquipment();
+    </script>
+</body>
+</html>

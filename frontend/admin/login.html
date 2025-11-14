@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .login-body {
+            padding: 40px 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .demo-accounts {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .demo-accounts h3 {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #666;
+        }
+
+        .demo-account {
+            background: white;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .demo-account:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .demo-account .role {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 12px;
+        }
+
+        .demo-account .credentials {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .debug-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .debug-info.show {
+            display: block;
+        }
+
+        .debug-info pre {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🔧 ระบบแจ้งซ่อม</h1>
+            <p>กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+        </div>
+
+        <div class="login-body">
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+            
+            <div id="loadingIndicator" class="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">กำลังเข้าสู่ระบบ...</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">ชื่อผู้ใช้</label>
+                    <input type="text" id="username" name="username" required 
+                           placeholder="กรอกชื่อผู้ใช้">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">รหัสผ่าน</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="กรอกรหัสผ่าน">
+                </div>
+
+                <button type="submit" class="btn-login" id="loginBtn">
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+
+            <div class="demo-accounts">
+                <h3>💡 บัญชีทดสอบ (คลิกเพื่อใช้งาน)</h3>
+                
+                <div class="demo-account" onclick="fillCredentials('admin', 'admin123')">
+                    <div class="role">⚙️ Admin (ผู้ดูแลระบบ)</div>
+                    <div class="credentials">Username: admin | Password: admin123</div>
+                </div>
+
+                <div class="demo-account" onclick="fillCredentials('technician', 'tech123')">
+                    <div class="role">🔧 Technician (ช่างเทคนิค)</div>
+                    <div class="credentials">Username: technician | Password: tech123</div>
+                </div>
+
+                <div class="demo-account" onclick="fillCredentials('user', 'user123')">
+                    <div class="role">👤 User (ผู้ใช้งานทั่วไป)</div>
+                    <div class="credentials">Username: user | Password: user123</div>
+                </div>
+            </div>
+
+            <!-- Debug Information (แสดงเมื่อ login สำเร็จ) -->
+            <div id="debugInfo" class="debug-info">
+                <strong>🔍 Debug Information:</strong>
+                <pre id="debugContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const DEBUG_MODE = true; // เปลี่ยนเป็น false เมื่อไม่ต้องการ debug
+
+        // Fill credentials for demo accounts
+        function fillCredentials(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+        }
+
+        // Show/hide error message
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            
+            const successEl = document.getElementById('successMessage');
+            successEl.classList.remove('show');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = message;
+            successEl.classList.add('show');
+            
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.classList.remove('show');
+        }
+
+        // Show/hide loading
+        function showLoading() {
+            document.getElementById('loadingIndicator').classList.add('show');
+            document.getElementById('loginBtn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').classList.remove('show');
+            document.getElementById('loginBtn').disabled = false;
+        }
+
+        // Debug function
+        function showDebugInfo(data) {
+            if (DEBUG_MODE) {
+                const debugEl = document.getElementById('debugInfo');
+                const debugContent = document.getElementById('debugContent');
+                debugContent.textContent = JSON.stringify(data, null, 2);
+                debugEl.classList.add('show');
+            }
+        }
+
+        // Get redirect URL based on role
+        function getRedirectUrl(role) {
+    const roleStr = (role || '').toString().toLowerCase();
+    
+    if (roleStr === 'admin' || roleStr === 'administrator') {
+        return 'all-requests.html'; // ✅ Same folder
+    } else if (roleStr === 'technician' || roleStr === 'tech') {
+        return 'dashboard.html';
+    } else {
+        return 'dashboard.html';
+    }
+}
+
+        // Login function
+        async function login(username, password) {
+            hideError();
+            showLoading();
+
+            try {
+                console.log('🔐 Attempting login for:', username);
+
+                // ลอง endpoint หลายตัว เพราะแต่ละ API อาจใช้คนละ endpoint
+                const endpoints = [
+                    '/api/auth/token/',
+                    '/api/auth/login/',
+                    '/api/token/',
+                    '/api/login/'
+                ];
+
+                let loginData = null;
+                let successEndpoint = null;
+
+                for (const endpoint of endpoints) {
+                    try {
+                        console.log(`🔄 Trying endpoint: ${endpoint}`);
+                        
+                        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ username, password }),
+                        });
+
+                        if (response.ok) {
+                            loginData = await response.json();
+                            successEndpoint = endpoint;
+                            console.log(`✅ Login successful with endpoint: ${endpoint}`);
+                            console.log('📦 Response data:', loginData);
+                            break;
+                        }
+                    } catch (err) {
+                        console.log(`❌ Failed with ${endpoint}:`, err.message);
+                        continue;
+                    }
+                }
+
+                if (!loginData) {
+                    throw new Error('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่า Backend ทำงานอยู่');
+                }
+
+                // ตรวจสอบว่ามี token หรือไม่
+                const accessToken = loginData.access || loginData.token || loginData.access_token;
+                const refreshToken = loginData.refresh || loginData.refresh_token;
+
+                if (!accessToken) {
+                    throw new Error('ไม่ได้รับ Access Token จากเซิร์ฟเวอร์');
+                }
+
+                // เก็บ tokens
+                localStorage.setItem('access_token', accessToken);
+                if (refreshToken) {
+                    localStorage.setItem('refresh_token', refreshToken);
+                }
+
+                // ตรวจสอบ user data - อาจอยู่ใน property ต่างๆ
+                let userData = loginData.user || loginData.data || loginData;
+                
+                console.log('👤 User data structure:', userData);
+
+                // ถ้าไม่มี user data ให้ดึงจาก API อีกที
+                if (!userData.role && !userData.username) {
+                    console.log('⚠️ No user data in login response, fetching from API...');
+                    
+                    try {
+                        const userEndpoints = ['/api/auth/me/', '/api/users/me/', '/api/user/'];
+                        
+                        for (const endpoint of userEndpoints) {
+                            try {
+                                const userResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+                                    headers: {
+                                        'Authorization': `Bearer ${accessToken}`
+                                    }
+                                });
+                                
+                                if (userResponse.ok) {
+                                    userData = await userResponse.json();
+                                    console.log('✅ Fetched user data from:', endpoint);
+                                    break;
+                                }
+                            } catch (err) {
+                                continue;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('⚠️ Could not fetch user data:', err);
+                    }
+                }
+
+                // ตรวจสอบและจัดการ role
+                const role = userData.role || userData.user_type || userData.type || 'user';
+                
+                // สร้าง user object ที่มีโครงสร้างเดียวกัน
+                const userObject = {
+                    id: userData.id,
+                    username: userData.username,
+                    email: userData.email,
+                    full_name: userData.full_name || userData.fullName || userData.name,
+                    role: role.toString().toLowerCase() // แปลงเป็น lowercase
+                };
+
+                console.log('💾 Storing user object:', userObject);
+
+                // บันทึก user data
+                localStorage.setItem('user', JSON.stringify(userObject));
+
+                // แสดง debug info
+                showDebugInfo({
+                    endpoint: successEndpoint,
+                    userData: userObject,
+                    tokens: {
+                        access: accessToken.substring(0, 20) + '...',
+                        refresh: refreshToken ? refreshToken.substring(0, 20) + '...' : 'N/A'
+                    }
+                });
+
+                // แสดงข้อความสำเร็จ
+                showSuccess(`✅ เข้าสู่ระบบสำเร็จ! Role: ${userObject.role}`);
+
+                // Redirect หลังจาก 1.5 วินาที
+                setTimeout(() => {
+                    const redirectUrl = getRedirectUrl(userObject.role);
+                    console.log(`🔄 Redirecting to: ${redirectUrl}`);
+                    window.location.href = redirectUrl;
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ Login failed:', error);
+                showError(error.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+                return;
+            }
+
+            await login(username, password);
+        });
+
+        // Check if already logged in
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const token = localStorage.getItem('access_token');
+            const user = localStorage.getItem('user');
+            
+            // ถ้ามี token แล้ว และไม่ได้อยู่ในหน้า login
+            if (token && user && currentPath.includes('login.html')) {
+                console.log('ℹ️ User already logged in');
+                
+                try {
+                    const userData = JSON.parse(user);
+                    const redirectUrl = getRedirectUrl(userData.role);
+                    
+                    // แสดงข้อความแจ้งเตือน
+                    showSuccess(`คุณเข้าสู่ระบบอยู่แล้ว กำลัง redirect...`);
+                    
+                    setTimeout(() => {
+                        window.location.href = redirectUrl;
+                    }, 1000);
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                }
+            }
+        });
+
+        // Log current localStorage for debugging
+        if (DEBUG_MODE) {
+            console.log('📦 Current localStorage:');
+            console.log('- access_token:', localStorage.getItem('access_token') ? 'exists' : 'not found');
+            console.log('- user:', localStorage.getItem('user'));
+        }
+    </script>
+</body>
+</html>

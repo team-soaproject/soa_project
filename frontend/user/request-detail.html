@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายละเอียดคำร้อง - ระบบแจ้งซ่อม</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .user-info p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .menu {
+            list-style: none;
+        }
+
+        .menu li {
+            margin-bottom: 5px;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .menu a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .menu a span {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn-back {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-back:hover {
+            background: #5a6268;
+        }
+
+        /* Loading/Error States */
+        .loading, .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .loading {
+            color: #667eea;
+        }
+
+        .error-state {
+            color: #e74c3c;
+        }
+
+        /* Request Detail Card */
+        .detail-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .card-header .request-code {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .status-badge-large {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #333;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-in-progress { background: #cce5ff; color: #004085; }
+        .badge-completed { background: #d4edda; color: #155724; }
+        .badge-cancelled { background: #f8d7da; color: #721c24; }
+        .badge-high { background: #f8d7da; color: #721c24; }
+        .badge-medium { background: #fff3cd; color: #856404; }
+        .badge-low { background: #d1ecf1; color: #0c5460; }
+
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            font-weight: 600;
+        }
+
+        .description-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 25px;
+        }
+
+        .description-box p {
+            color: #333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e0e0e0;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 25px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #667eea;
+        }
+
+        .timeline-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .timeline-date {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .timeline-text {
+            color: #333;
+            font-size: 14px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <h2><span>🔧</span> ระบบแจ้งซ่อม</h2>
+        </div>
+
+        <div class="user-info">
+            <p><strong id="userName">กำลังโหลด...</strong></p>
+            <span class="role-badge" id="userRole">กำลังโหลด...</span>
+        </div>
+
+        <ul class="menu">
+            <li><a href="dashboard.html"><span>📊</span> Dashboard</a></li>
+            <li><a href="my-requests.html"><span>📝</span> คำร้องของฉัน</a></li>
+            <li><a href="create-request.html"><span>➕</span> แจ้งซ่อมใหม่</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div class="header-left">
+                <a href="javascript:history.back()" class="btn-back">
+                    ← ย้อนกลับ
+                </a>
+                <h1>รายละเอียดคำร้อง</h1>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <h3>⏳ กำลังโหลดข้อมูล...</h3>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error-state" style="display: none;">
+            <h3>❌ เกิดข้อผิดพลาด</h3>
+            <p id="errorMessage"></p>
+            <button class="btn btn-primary" onclick="location.reload()">ลองอีกครั้ง</button>
+        </div>
+
+        <!-- Request Detail -->
+        <div id="requestDetail" style="display: none;">
+            <!-- Detail Card -->
+            <div class="detail-card">
+                <div class="card-header">
+                    <div>
+                        <h2 id="requestTitle">ไม่ระบุปัญหา</h2>
+                        <div class="request-code">#<span id="requestCode">-</span></div>
+                    </div>
+                    <div class="status-badge-large" id="statusBadge">-</div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Info Grid -->
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">อุปกรณ์</div>
+                            <div class="info-value" id="equipmentName">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">ความเร่งด่วน</div>
+                            <div class="info-value" id="priorityBadge">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">ผู้แจ้ง</div>
+                            <div class="info-value" id="requesterName">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">วันที่แจ้ง</div>
+                            <div class="info-value" id="createdDate">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">ช่างที่รับผิดชอบ</div>
+                            <div class="info-value" id="technicianName">-</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">วันที่เสร็จสิ้น</div>
+                            <div class="info-value" id="completedDate">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Problem Description -->
+                    <div class="section-title">รายละเอียดปัญหา</div>
+                    <div class="description-box">
+                        <p id="problemDescription">ไม่มีรายละเอียด</p>
+                    </div>
+
+                    <!-- Resolution (if completed) -->
+                    <div id="resolutionSection" style="display: none;">
+                        <div class="section-title">การแก้ไข</div>
+                        <div class="description-box" style="border-left-color: #28a745;">
+                            <p id="resolutionDescription">-</p>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons" id="actionButtons">
+                        <!-- Buttons will be added dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline Card -->
+            <div class="detail-card">
+                <div class="card-body">
+                    <div class="section-title">ประวัติการดำเนินการ</div>
+                    <div class="timeline" id="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-date" id="timelineCreated">-</div>
+                                <div class="timeline-text">สร้างคำร้องแจ้งซ่อม</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        
+        // ==========================================
+        // Get Request ID from URL
+        // ==========================================
+        function getRequestId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // ==========================================
+        // Authentication Check
+        // ==========================================
+        function checkAuth() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                console.log('❌ No token found, redirecting to login');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // ==========================================
+        // Get User Info
+        // ==========================================
+        function getCurrentUser() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                console.warn('⚠️ No user data found');
+                return null;
+            }
+            return JSON.parse(userStr);
+        }
+
+        function getUserRole() {
+            const user = getCurrentUser();
+            if (!user) return 'user';
+            
+            if (user.role) return user.role;
+            if (user.is_superuser || user.is_staff) return 'admin';
+            if (user.user_type) return user.user_type;
+            
+            return 'user';
+        }
+
+        // ==========================================
+        // UI Helpers
+        // ==========================================
+        function getRoleText(role) {
+            const roleTexts = {
+                'admin': 'ผู้ดูแลระบบ',
+                'technician': 'ช่างเทคนิค',
+                'user': 'ผู้ใช้งาน'
+            };
+            return roleTexts[role] || role;
+        }
+
+        function getPriorityText(priority) {
+            const texts = {
+                'LOW': 'ปกติ',
+                'MEDIUM': 'ด่วน',
+                'HIGH': 'ด่วนมาก'
+            };
+            return texts[priority] || priority;
+        }
+
+        function getPriorityClass(priority) {
+            const classes = {
+                'LOW': 'badge-low',
+                'MEDIUM': 'badge-medium',
+                'HIGH': 'badge-high'
+            };
+            return classes[priority] || 'badge-low';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'PENDING': 'รอดำเนินการ',
+                'IN_PROGRESS': 'กำลังดำเนินการ',
+                'COMPLETED': 'เสร็จสิ้น',
+                'CANCELLED': 'ยกเลิก'
+            };
+            return texts[status] || status;
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'PENDING': 'badge-pending',
+                'IN_PROGRESS': 'badge-in-progress',
+                'COMPLETED': 'badge-completed',
+                'CANCELLED': 'badge-cancelled'
+            };
+            return classes[status] || 'badge-pending';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ==========================================
+        // Update User Display
+        // ==========================================
+        function updateUserDisplay() {
+            const user = getCurrentUser();
+            const role = getUserRole();
+            
+            if (user) {
+                document.getElementById('userName').textContent = 
+                    user.first_name || user.username || 'ผู้ใช้';
+                document.getElementById('userRole').textContent = getRoleText(role);
+            }
+
+            console.log('👤 User:', user?.username, '| Role:', role);
+        }
+
+        // ==========================================
+        // API Call
+        // ==========================================
+        async function apiCall(endpoint, options = {}) {
+            const token = localStorage.getItem('access_token');
+            
+            try {
+                console.log('🔄 API Call:', endpoint);
+                
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                console.log('📡 Response status:', response.status);
+
+                if (response.status === 401) {
+                    console.error('❌ Unauthorized - Session expired');
+                    alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                    throw new Error('Session expired');
+                }
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Response error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ Response data:', data);
+                return data;
+            } catch (error) {
+                console.error('❌ API Error:', error);
+                throw error;
+            }
+        }
+
+        // ==========================================
+        // Load Request Detail
+        // ==========================================
+        async function loadRequestDetail() {
+            const requestId = getRequestId();
+            
+            if (!requestId) {
+                showError('ไม่พบรหัสคำร้อง');
+                return;
+            }
+
+            const loadingEl = document.getElementById('loadingState');
+            const errorEl = document.getElementById('errorState');
+            const detailEl = document.getElementById('requestDetail');
+
+            try {
+                console.log('📋 Loading request ID:', requestId);
+                
+                const request = await apiCall(`/api/maintenance-requests/${requestId}/`);
+                
+                console.log('✅ Request loaded:', request);
+                
+                // Hide loading, show detail
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'none';
+                detailEl.style.display = 'block';
+                
+                // Fill in the data
+                displayRequestDetail(request);
+                
+            } catch (error) {
+                console.error('❌ Failed to load request:', error);
+                showError(error.message);
+            }
+        }
+
+        // ==========================================
+        // Display Request Detail
+        // ==========================================
+        function displayRequestDetail(request) {
+            // Header - แสดงชื่ออุปกรณ์แทนปัญหา
+            const equipmentName = request.equipment?.name || request.equipment_detail?.name || 'ไม่ระบุอุปกรณ์';
+            document.getElementById('requestTitle').textContent = equipmentName;
+            document.getElementById('requestCode').textContent = 
+                request.request_code || '-';
+            
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.textContent = getStatusText(request.status);
+            statusBadge.className = 'status-badge-large';
+            
+            // Info Grid
+            document.getElementById('equipmentName').textContent = equipmentName;
+            
+            const priorityBadge = document.getElementById('priorityBadge');
+            priorityBadge.innerHTML = 
+                `<span class="badge ${getPriorityClass(request.priority)}">${getPriorityText(request.priority)}</span>`;
+            
+            // ผู้แจ้ง - ใช้ข้อมูลจาก localStorage
+            const currentUser = getCurrentUser();
+            document.getElementById('requesterName').textContent = 
+                currentUser?.first_name || currentUser?.username || currentUser?.email || 'ผู้ใช้';
+            
+            document.getElementById('createdDate').textContent = 
+                formatDate(request.created_at);
+            
+            document.getElementById('technicianName').textContent = 
+                request.assigned_to?.first_name || request.assigned_to?.username || 'ยังไม่ได้มอบหมาย';
+            
+            document.getElementById('completedDate').textContent = 
+                formatDate(request.completed_at);
+            
+            // Problem Description
+            document.getElementById('problemDescription').textContent = 
+                request.problem_description || 'ไม่มีรายละเอียด';
+            
+            // Resolution (if completed)
+            if (request.status === 'COMPLETED' && request.resolution_description) {
+                document.getElementById('resolutionSection').style.display = 'block';
+                document.getElementById('resolutionDescription').textContent = 
+                    request.resolution_description;
+            }
+            
+            // Timeline
+            displayTimeline(request);
+            
+            // Action Buttons
+            displayActionButtons(request);
+        }
+
+        // ==========================================
+        // Display Timeline
+        // ==========================================
+        function displayTimeline(request) {
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '';
+            
+            // Created
+            timeline.innerHTML += `
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-date">${formatDate(request.created_at)}</div>
+                        <div class="timeline-text">สร้างคำร้องแจ้งซ่อม</div>
+                    </div>
+                </div>
+            `;
+            
+            // Assigned
+            if (request.assigned_to) {
+                timeline.innerHTML += `
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-date">${formatDate(request.updated_at)}</div>
+                            <div class="timeline-text">มอบหมายให้ ${request.assigned_to.first_name || request.assigned_to.username}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // In Progress
+            if (request.status === 'IN_PROGRESS' || request.status === 'COMPLETED') {
+                timeline.innerHTML += `
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-date">${formatDate(request.updated_at)}</div>
+                            <div class="timeline-text">เริ่มดำเนินการซ่อม</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Completed
+            if (request.status === 'COMPLETED') {
+                timeline.innerHTML += `
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <div class="timeline-date">${formatDate(request.completed_at)}</div>
+                            <div class="timeline-text">เสร็จสิ้นการซ่อม</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ==========================================
+        // Display Action Buttons
+        // ==========================================
+        function displayActionButtons(request) {
+            const actionButtons = document.getElementById('actionButtons');
+            const role = getUserRole();
+            const currentUser = getCurrentUser();
+            
+            actionButtons.innerHTML = '';
+            
+            // Admin can do everything
+            if (role === 'admin') {
+                if (request.status === 'PENDING') {
+                    actionButtons.innerHTML += `
+                        <button class="btn btn-primary" onclick="assignRequest()">มอบหมายช่าง</button>
+                    `;
+                }
+                if (request.status === 'PENDING' || request.status === 'IN_PROGRESS') {
+                    actionButtons.innerHTML += `
+                        <button class="btn btn-danger" onclick="cancelRequest()">ยกเลิกคำร้อง</button>
+                    `;
+                }
+            }
+            
+            // Technician can update status
+            if (role === 'technician' && request.assigned_to?.id === currentUser?.id) {
+                if (request.status === 'PENDING') {
+                    actionButtons.innerHTML += `
+                        <button class="btn btn-primary" onclick="startWork()">เริ่มงาน</button>
+                    `;
+                }
+                if (request.status === 'IN_PROGRESS') {
+                    actionButtons.innerHTML += `
+                        <button class="btn btn-success" onclick="completeWork()">เสร็จสิ้น</button>
+                    `;
+                }
+            }
+        }
+
+        // ==========================================
+        // Show Error
+        // ==========================================
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        // ==========================================
+        // Action Functions (Placeholder)
+        // ==========================================
+        function assignRequest() {
+            alert('ฟีเจอร์นี้กำลังพัฒนา');
+        }
+
+        function cancelRequest() {
+            if (confirm('คุณต้องการยกเลิกคำร้องนี้หรือไม่?')) {
+                alert('ฟีเจอร์นี้กำลังพัฒนา');
+            }
+        }
+
+        function startWork() {
+            if (confirm('คุณต้องการเริ่มงานซ่อมนี้หรือไม่?')) {
+                alert('ฟีเจอร์นี้กำลังพัฒนา');
+            }
+        }
+
+        function completeWork() {
+            if (confirm('คุณต้องการทำเครื่องหมายว่าเสร็จสิ้นหรือไม่?')) {
+                alert('ฟีเจอร์นี้กำลังพัฒนา');
+            }
+        }
+
+        // ==========================================
+        // Initialize Page
+        // ==========================================
+        async function init() {
+            console.log('🚀 Initializing request detail page...');
+            
+            if (!checkAuth()) return;
+            
+            updateUserDisplay();
+            await loadRequestDetail();
+            
+            console.log('✅ Request detail page initialized');
+        }
+
+        // Run on page load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

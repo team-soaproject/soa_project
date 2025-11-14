@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการผู้ใช้ - ระบบแจ้งซ่อมอุปกรณ์</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 20px;
+        }
+
+        .user-info {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .menu {
+            list-style: none;
+        }
+
+        .menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .menu a:hover, .menu a.active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .menu a span {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .btn-logout {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .content-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .filter-group input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-admin {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-technician {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-user {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .btn-make-admin {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-remove-admin {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-deactivate {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h2>🔧 ระบบแจ้งซ่อม</h2>
+        </div>
+
+        <div class="user-info">
+            <p><strong id="userName">Loading...</strong></p>
+            <span class="role-badge" id="userRole">Loading...</span>
+        </div>
+
+        <ul class="menu">
+            <li><a href="dashboard.html"><span>📊</span> Dashboard</a></li>
+            <li><a href="my-requests.html"><span>📝</span> คำร้องของฉัน</a></li>
+            <li><a href="create-request.html"><span>➕</span> แจ้งซ่อมใหม่</a></li>
+            <li><a href="all-requests.html"><span>📋</span> คำร้องทั้งหมด</a></li>
+            <li><a href="equipment.html"><span>🖥️</span> จัดการอุปกรณ์</a></li>
+            <li><a href="users.html" class="active"><span>👥</span> จัดการผู้ใช้</a></li>
+            <li><a href="reports.html"><span>📈</span> รายงาน</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>จัดการผู้ใช้</h1>
+            <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>ผู้ใช้ทั้งหมด</h3>
+                <div class="number" id="totalUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>ผู้ดูแลระบบ</h3>
+                <div class="number" id="totalAdmins">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>ช่างเทคนิค</h3>
+                <div class="number" id="totalTechnicians">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>ผู้ใช้งาน</h3>
+                <div class="number" id="totalRegularUsers">0</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="toolbar">
+                <div class="filter-group">
+                    <select id="roleFilter" onchange="loadUsers()">
+                        <option value="">ทุกบทบาท</option>
+                        <option value="admin">ผู้ดูแลระบบ</option>
+                        <option value="technician">ช่างเทคนิค</option>
+                        <option value="user">ผู้ใช้งาน</option>
+                    </select>
+                    <input type="search" id="searchInput" placeholder="ค้นหาผู้ใช้..." onkeyup="loadUsers()">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div id="usersLoading" class="loading">กำลังโหลดข้อมูล...</div>
+                <div id="usersContainer" style="display: none;">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ชื่อผู้ใช้</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>อีเมล</th>
+                                <th>บทบาท</th>
+                                <th>สถานะ</th>
+                                <th>การกระทำ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const token = localStorage.getItem('access_token');
+        
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userRole = user.role || 'user';
+
+        if (userRole !== 'admin') {
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
+            window.location.href = 'dashboard.html';
+        }
+
+        document.getElementById('userName').textContent = user.full_name || user.username;
+        document.getElementById('userRole').textContent = 'ผู้ดูแลระบบ';
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/roles_summary/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalUsers').textContent = data.total || 0;
+                    document.getElementById('totalAdmins').textContent = data.admins || 0;
+                    document.getElementById('totalTechnicians').textContent = data.technicians || 0;
+                    document.getElementById('totalRegularUsers').textContent = data.users || 0;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function getRoleText(userObj) {
+            if (userObj.is_superuser) return 'ผู้ดูแลระบบสูงสุด';
+            if (userObj.is_staff) return 'ผู้ดูแลระบบ';
+            if (userObj.role === 'technician') return 'ช่างเทคนิค';
+            return 'ผู้ใช้งาน';
+        }
+
+        function getRoleBadgeClass(userObj) {
+            if (userObj.is_superuser || userObj.is_staff) return 'badge-admin';
+            if (userObj.role === 'technician') return 'badge-technician';
+            return 'badge-user';
+        }
+
+        async function loadUsers() {
+            try {
+                const roleFilter = document.getElementById('roleFilter').value;
+                const search = document.getElementById('searchInput').value;
+
+                let endpoint = `${API_BASE_URL}/api/users/?ordering=-date_joined`;
+                
+                if (roleFilter) {
+                    endpoint += `&role=${roleFilter}`;
+                }
+                if (search) {
+                    endpoint += `&search=${search}`;
+                }
+
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load users');
+                }
+
+                const data = await response.json();
+                const users = data.results || data;
+
+                document.getElementById('usersLoading').style.display = 'none';
+                document.getElementById('usersContainer').style.display = 'block';
+
+                const tbody = document.getElementById('usersBody');
+                tbody.innerHTML = users.map(u => {
+                    const isCurrentUser = u.id === user.id;
+                    const canModify = !isCurrentUser && !u.is_superuser;
+
+                    let actions = '';
+                    if (canModify) {
+                        if (u.is_staff) {
+                            actions += `<button class="btn-action btn-remove-admin" onclick="removeAdmin(${u.id})">ลบสิทธิ์ Admin</button>`;
+                        } else {
+                            actions += `<button class="btn-action btn-make-admin" onclick="makeAdmin(${u.id})">เลื่อนเป็น Admin</button>`;
+                        }
+                        
+                        if (u.is_active) {
+                            actions += `<button class="btn-action btn-deactivate" onclick="toggleActive(${u.id}, false)">ปิดการใช้งาน</button>`;
+                        } else {
+                            actions += `<button class="btn-action btn-make-admin" onclick="toggleActive(${u.id}, true)">เปิดการใช้งาน</button>`;
+                        }
+                    } else if (isCurrentUser) {
+                        actions = '<span style="color: #999; font-size: 12px;">ผู้ใช้ปัจจุบัน</span>';
+                    } else {
+                        actions = '<span style="color: #999; font-size: 12px;">ไม่สามารถแก้ไขได้</span>';
+                    }
+
+                    return `
+                        <tr>
+                            <td><strong>${u.username}</strong></td>
+                            <td>${u.full_name || '-'}</td>
+                            <td>${u.email || '-'}</td>
+                            <td><span class="badge ${getRoleBadgeClass(u)}">${getRoleText(u)}</span></td>
+                            <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-inactive'}">${u.is_active ? 'ใช้งาน' : 'ปิดใช้งาน'}</span></td>
+                            <td>${actions}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('usersLoading').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+            }
+        }
+
+        async function makeAdmin(userId) {
+            if (!confirm('คุณต้องการเลื่อนผู้ใช้นี้เป็นผู้ดูแลระบบหรือไม่?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/${userId}/make_admin/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    alert('เลื่อนเป็นผู้ดูแลระบบสำเร็จ');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    throw new Error('Failed to make admin');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาด');
+            }
+        }
+
+        async function removeAdmin(userId) {
+            if (!confirm('คุณต้องการลบสิทธิ์ผู้ดูแลระบบหรือไม่?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/${userId}/remove_admin/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    alert('ลบสิทธิ์สำเร็จ');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to remove admin');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+
+        async function toggleActive(userId, isActive) {
+            const action = isActive ? 'เปิดการใช้งาน' : 'ปิดการใช้งาน';
+            if (!confirm(`คุณต้องการ${action}ผู้ใช้นี้หรือไม่?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users/${userId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ is_active: isActive })
+                });
+
+                if (response.ok) {
+                    alert(`${action}สำเร็จ`);
+                    loadUsers();
+                } else {
+                    throw new Error('Failed to toggle active');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาด');
+            }
+        }
+
+        function logout() {
+            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+
+        loadStats();
+        loadUsers();
+    </script>
+</body>
+</html>

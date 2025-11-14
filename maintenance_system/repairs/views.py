@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django.contrib.auth.models import User
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
@@ -29,6 +29,92 @@ def register(request):
             'user': UserSerializer(user).data
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """ViewSet สำหรับจัดการผู้ใช้และบทบาท"""
+    queryset = User.objects.all().select_related('technician')
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['username', 'email', 'first_name', 'last_name']
+    ordering_fields = ['id', 'username', 'email', 'date_joined']
+    ordering = ['-date_joined']
+    
+    def get_queryset(self):
+        """กรองผู้ใช้ตามบทบาท"""
+        queryset = super().get_queryset()
+        role = self.request.query_params.get('role', None)
+        
+        if role == 'admin':
+            # ผู้ดูแลระบบ (staff หรือ superuser)
+            queryset = queryset.filter(Q(is_staff=True) | Q(is_superuser=True))
+        elif role == 'technician':
+            # ช่างซ่อม (มีข้อมูลใน Technician table)
+            queryset = queryset.filter(technician__isnull=False)
+        elif role == 'user':
+            # ผู้ใช้ทั่วไป (ไม่ใช่ admin และไม่ใช่ technician)
+            queryset = queryset.filter(
+                is_staff=False,
+                is_superuser=False,
+                technician__isnull=True
+            )
+        
+        return queryset.distinct()
+    
+    @action(detail=False, methods=['get'])
+    def roles_summary(self, request):
+        """สรุปจำนวนผู้ใช้แต่ละบทบาท"""
+        total_users = User.objects.count()
+        admins = User.objects.filter(Q(is_staff=True) | Q(is_superuser=True)).distinct().count()
+        technicians = User.objects.filter(technician__isnull=False).count()
+        regular_users = User.objects.filter(
+            is_staff=False,
+            is_superuser=False,
+            technician__isnull=True
+        ).count()
+        
+        return Response({
+            'total': total_users,
+            'admins': admins,
+            'technicians': technicians,
+            'users': regular_users
+        })
+    
+    @action(detail=True, methods=['post'])
+    def make_admin(self, request, pk=None):
+        """เปลี่ยนผู้ใช้เป็น Admin"""
+        user = self.get_object()
+        user.is_staff = True
+        user.save()
+        serializer = self.get_serializer(user)
+        return Response({
+            'message': 'เปลี่ยนเป็นผู้ดูแลระบบสำเร็จ',
+            'data': serializer.data
+        })
+    
+    @action(detail=True, methods=['post'])
+    def remove_admin(self, request, pk=None):
+        """ลบสิทธิ์ Admin"""
+        user = self.get_object()
+        if user.is_superuser:
+            return Response(
+                {'error': 'ไม่สามารถลบสิทธิ์ผู้ดูแลระบบสูงสุดได้'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.is_staff = False
+        user.save()
+        serializer = self.get_serializer(user)
+        return Response({
+            'message': 'ลบสิทธิ์ผู้ดูแลระบบสำเร็จ',
+            'data': serializer.data
+        })
+    
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """ดูข้อมูลผู้ใช้ปัจจุบัน"""
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
 
 
 class EquipmentViewSet(viewsets.ModelViewSet):
@@ -66,19 +152,45 @@ class EquipmentViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def statistics(self, request):
-        """สถิติอุปกรณ์"""
-        total = Equipment.objects.count()
-        active = Equipment.objects.filter(status='ACTIVE').count()
-        under_repair = Equipment.objects.filter(status='UNDER_REPAIR').count()
-        out_of_service = Equipment.objects.filter(status='OUT_OF_SERVICE').count()
-        
-        return Response({
-            'total_equipment': total,
-            'active': active,
-            'under_repair': under_repair,
-            'out_of_service': out_of_service
-        })
+        """สถิติการแจ้งซ่อม (เฉพาะ admin)"""
+    # 🔒 ตรวจสิทธิ์ admin
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้"},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
+        qs = MaintenanceRequest.objects.all()
+
+        total = qs.count()
+        pending = qs.filter(status='PENDING').count()
+        in_progress = qs.filter(status='IN_PROGRESS').count()
+        completed = qs.filter(status='COMPLETED').count()
+        high_priority = qs.filter(priority='HIGH').count()
+
+        completed_requests = qs.filter(
+            status='COMPLETED',
+            completed_at__isnull=False
+        )
+
+        avg_time = 0
+        if completed_requests.exists():
+            total_time = sum([
+                (req.completed_at - req.created_at).total_seconds() / 3600
+                for req in completed_requests
+            ])
+            avg_time = round(total_time / completed_requests.count(), 2)
+
+        data = {
+            'total_requests': total,
+            'pending_requests': pending,
+            'in_progress_requests': in_progress,
+            'completed_requests': completed,
+            'high_priority_requests': high_priority,
+            'average_completion_time': avg_time
+        }
+
+        return Response(data)
 
 class TechnicianViewSet(viewsets.ModelViewSet):
     """ViewSet สำหรับจัดการช่างซ่อม"""
@@ -136,6 +248,16 @@ class MaintenanceRequestViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return MaintenanceRequestListSerializer
         return MaintenanceRequestSerializer
+
+    # ✅ เพิ่มบล็อกนี้
+    def perform_create(self, serializer):
+        """
+        เวลา user แจ้งซ่อม ให้บันทึก requester เป็น user ที่ล็อกอินอยู่เสมอ
+        ไม่ให้ frontend ส่ง id มากำหนดเอง
+        """
+        serializer.save(requester=self.request.user)
+
+    
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -219,38 +341,44 @@ class MaintenanceRequestViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def statistics(self, request):
-        """สถิติการแจ้งซ่อม"""
-        total = MaintenanceRequest.objects.count()
-        pending = MaintenanceRequest.objects.filter(status='PENDING').count()
-        in_progress = MaintenanceRequest.objects.filter(status='IN_PROGRESS').count()
-        completed = MaintenanceRequest.objects.filter(status='COMPLETED').count()
-        high_priority = MaintenanceRequest.objects.filter(priority='HIGH').count()
-        
-        # คำนวณเวลาเฉลี่ยในการซ่อม (ชั่วโมง)
-        completed_requests = MaintenanceRequest.objects.filter(
-            status='COMPLETED',
-            completed_at__isnull=False
-        )
-        
+        """สถิติการแจ้งซ่อม (รองรับ my_requests=true)"""
+        qs = MaintenanceRequest.objects.all()
+
+        # ถ้ามีพารามิเตอร์ my_requests=true ให้ดูเฉพาะของ user ปัจจุบัน
+        if request.query_params.get('my_requests') == 'true':
+            qs = qs.filter(requester=request.user)
+
+        total = qs.count()
+        pending = qs.filter(status='PENDING').count()
+        in_progress = qs.filter(status='IN_PROGRESS').count()
+        completed = qs.filter(status='COMPLETED').count()
+        high_priority = qs.filter(priority='HIGH').count()
+
+        completed_requests = qs.filter(
+        status='COMPLETED',
+        completed_at__isnull=False
+    )
+
         avg_time = 0
         if completed_requests.exists():
             total_time = sum([
-                (req.completed_at - req.created_at).total_seconds() / 3600
-                for req in completed_requests
-            ])
-            avg_time = round(total_time / completed_requests.count(), 2)
-        
+            (req.completed_at - req.created_at).total_seconds() / 3600
+            for req in completed_requests
+        ])
+        avg_time = round(total_time / completed_requests.count(), 2)
+
         data = {
-            'total_requests': total,
-            'pending_requests': pending,
-            'in_progress_requests': in_progress,
-            'completed_requests': completed,
-            'high_priority_requests': high_priority,
-            'average_completion_time': avg_time
-        }
-        
+        'total_requests': total,
+        'pending_requests': pending,
+        'in_progress_requests': in_progress,
+        'completed_requests': completed,
+        'high_priority_requests': high_priority,
+        'average_completion_time': avg_time
+    }
+
         serializer = MaintenanceRequestStatsSerializer(data)
         return Response(serializer.data)
+
     
     @action(detail=False, methods=['get'])
     def urgent(self, request):
@@ -304,4 +432,3 @@ class RepairLogViewSet(viewsets.ModelViewSet):
             'average_labor_hours': round(total_hours, 2),
             'average_cost': round(total_cost, 2)
         })
-# Create your views here.
